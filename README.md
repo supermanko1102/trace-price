@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 預售屋數據管理系統
 
-## Getting Started
+## 專案概述
 
-First, run the development server:
+這是一個基於 Next.js 和 MongoDB 開發的預售屋數據管理系統。該系統允許管理員上傳 CSV 格式的預售屋數據，並提供數據清理功能。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 功能特點
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- CSV 檔案上傳：支持上傳包含預售屋信息的 CSV 檔案。
+- 數據處理：自動處理上傳的數據，包括單位轉換（平方公尺轉坪）。
+- 數據存儲：將處理後的數據存儲到 MongoDB 數據庫。
+- 數據更新：根據唯一標識符更新現有數據或插入新數據。
+- 數據清理：提供清除所有現有數據的功能。
+- 用戶友好界面：使用 Shadcn UI 和 Tailwind CSS 構建的直觀管理界面。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 技術棧
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+- **前端**：Next.js, React, Tailwind CSS, Shadcn UI
+- **後端**：Next.js API Routes
+- **數據庫**：MongoDB
+- **其他工具**：Axios, csv-parser
 
-## Learn More
+## 安裝指南
 
-To learn more about Next.js, take a look at the following resources:
+1. 克隆儲存庫：
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```
+   git clone [您的儲存庫URL]
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+2. 安裝依賴：
 
-## Deploy on Vercel
+   ```
+   npm install
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. 設置環境變量：
+   創建一個 `.env.local` 文件，並添加以下內容：
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+   ```
+   MONGODB_URI=您的MongoDB連接字符串
+   MONGODB_DB=您的數據庫名稱
+   ```
+
+4. 運行開發服務器：
+
+   ```
+   npm run dev
+   ```
+
+5. 訪問 `http://localhost:3000/admin` 來使用管理界面。
+
+## 使用說明
+
+1. **上傳數據**：
+
+   - 在管理頁面上，點擊 "選擇檔案" 按鈕選擇 CSV 檔案。
+   - 點擊 "上傳檔案" 按鈕開始上傳和處理數據。
+
+2. **清除數據**：
+   - 點擊 "清除所有數據" 按鈕可以刪除數據庫中的所有預售屋數據。
+   - 此操作不可逆，請謹慎使用。
+
+## 數據格式
+
+上傳的 CSV 檔案應包含以下欄位：
+
+- 鄉鎮市區
+- 建案名稱
+- 棟及號
+- 交易年月日
+- 土地位置建物門牌
+- 主要用途
+- 建物移轉總面積平方公尺
+- 建物現況格局-房
+- 建物現況格局-廳
+- 建物現況格局-衛
+- 總價元
+- 單價元平方公尺
+- 車位類別
+- 車位移轉總面積平方公尺
+- 車位總價元
+
+## 貢獻指南
+
+如果您想為這個專案做出貢獻，請遵循以下步驟：
+
+1. Fork 這個儲存庫
+2. 創建您的特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 開啟一個 Pull Request
+
+## 許可證
+
+[選擇適合您專案的許可證]
+
+## 聯繫方式
+
+[您的聯繫信息]
