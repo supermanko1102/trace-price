@@ -1,69 +1,69 @@
-# 預售屋數據管理系統
+# Presale Housing Data Management System
 
-## 專案概述
+## Project Overview
 
-這是一個基於 Next.js 和 MongoDB 開發的預售屋數據管理系統。該系統允許管理員上傳 CSV 格式的預售屋數據，並提供數據清理功能。
+This is a presale housing data management system developed using Next.js and MongoDB. The system allows administrators to upload presale housing data in CSV format and provides data cleaning functionality.
 
-## 功能特點
+## Features
 
-- CSV 檔案上傳：支持上傳包含預售屋信息的 CSV 檔案。
-- 數據處理：自動處理上傳的數據，包括單位轉換（平方公尺轉坪）。
-- 數據存儲：將處理後的數據存儲到 MongoDB 數據庫。
-- 數據更新：根據唯一標識符更新現有數據或插入新數據。
-- 數據清理：提供清除所有現有數據的功能。
-- 用戶友好界面：使用 Shadcn UI 和 Tailwind CSS 構建的直觀管理界面。
+- CSV File Upload: Support for uploading CSV files containing presale housing information.
+- Data Processing: Automatic processing of uploaded data, including unit conversion (square meters to ping).
+- Data Storage: Storing processed data in MongoDB database.
+- Data Update: Updating existing data or inserting new data based on unique identifiers.
+- Data Cleaning: Functionality to clear all existing data.
+- User-Friendly Interface: Intuitive management interface built using Shadcn UI and Tailwind CSS.
 
-## 技術棧
+## Tech Stack
 
-- **前端**：Next.js, React, Tailwind CSS, Shadcn UI
-- **後端**：Next.js API Routes
-- **數據庫**：MongoDB
-- **其他工具**：Axios, csv-parser
+- **Frontend**: Next.js, React, Tailwind CSS, Shadcn UI
+- **Backend**: Next.js API Routes
+- **Database**: MongoDB
+- **Other Tools**: Axios, csv-parser
 
-## 安裝指南
+## Installation Guide
 
-1. 克隆儲存庫：
+1. Clone the repository:
 
    ```
-   git clone [您的儲存庫URL]
+   git clone [Your Repository URL]
    ```
 
-2. 安裝依賴：
+2. Install dependencies:
 
    ```
    npm install
    ```
 
-3. 設置環境變量：
-   創建一個 `.env.local` 文件，並添加以下內容：
+3. Set up environment variables:
+   Create a `.env.local` file and add the following content:
 
    ```
-   MONGODB_URI=您的MongoDB連接字符串
-   MONGODB_DB=您的數據庫名稱
+   MONGODB_URI=Your MongoDB connection string
+   MONGODB_DB=Your database name
    ```
 
-4. 運行開發服務器：
+4. Run the development server:
 
    ```
    npm run dev
    ```
 
-5. 訪問 `http://localhost:3000/admin` 來使用管理界面。
+5. Access the admin interface at `http://localhost:3000/admin`.
 
-## 使用說明
+## Usage Instructions
 
-1. **上傳數據**：
+1. **Uploading Data**:
 
-   - 在管理頁面上，點擊 "選擇檔案" 按鈕選擇 CSV 檔案。
-   - 點擊 "上傳檔案" 按鈕開始上傳和處理數據。
+   - On the admin page, click the "Choose File" button to select a CSV file.
+   - Click the "Upload File" button to start uploading and processing the data.
 
-2. **清除數據**：
-   - 點擊 "清除所有數據" 按鈕可以刪除數據庫中的所有預售屋數據。
-   - 此操作不可逆，請謹慎使用。
+2. **Clearing Data**:
+   - Click the "Clear All Data" button to delete all presale housing data from the database.
+   - This operation is irreversible, please use with caution.
 
-## 數據格式
+## Data Format
 
-上傳的 CSV 檔案應包含以下欄位：
+The uploaded CSV file should include the following fields:
 
 - 鄉鎮市區
 - 建案名稱
@@ -81,20 +81,16 @@
 - 車位移轉總面積平方公尺
 - 車位總價元
 
-## 貢獻指南
+## Contribution Guidelines
 
-如果您想為這個專案做出貢獻，請遵循以下步驟：
+If you'd like to contribute to this project, please follow these steps:
 
-1. Fork 這個儲存庫
-2. 創建您的特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 開啟一個 Pull Request
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 許可證
+## Contact Information
 
-[選擇適合您專案的許可證]
-
-## 聯繫方式
-
-[您的聯繫信息]
+[caowenjieko@gmail.com]
