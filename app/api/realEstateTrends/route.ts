@@ -7,9 +7,13 @@ export async function GET(request: NextRequest) {
     const db = client.db(process.env.MONGODB_DB);
 
     // 這裡應該是您的實際邏輯來獲取房地產趨勢數據
-    const trends = await db.collection("realEstateTrends").find({}).toArray();
+    const houses = await db
+      .collection("presale_houses")
+      .find({})
+      .limit(10)
+      .toArray();
 
-    return NextResponse.json(trends);
+    return NextResponse.json(houses);
   } catch (error) {
     console.error("Database Error:", error);
     return NextResponse.json(
