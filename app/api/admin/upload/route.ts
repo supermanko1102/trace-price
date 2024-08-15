@@ -7,6 +7,9 @@ function squareMetersToPin(squareMeters: number): number {
   return squareMeters / 3.305785;
 }
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const file = formData.get("file") as File;
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
             建物移轉總面積坪: squareMetersToPin(buildingArea),
             建物現況格局房: parseInt(data["建物現況格局-房"]) || 0,
             建物現況格局廳: parseInt(data["建物現況格局-廳"]) || 0,
-            建物現況格局衛: parseInt(data["建物現況格局-衛"]) || 0,
+            建物現況格局衛: parseInt(data["��物現況格局-衛"]) || 0,
             總價元: totalPrice,
             單價元平方公尺: parseFloat(data["單價元平方公尺"]) || 0,
             單價元坪: (parseFloat(data["單價元平方公尺"]) || 0) * 3.305785,
@@ -134,9 +137,3 @@ export async function POST(request: NextRequest) {
     await client.close();
   }
 }
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
