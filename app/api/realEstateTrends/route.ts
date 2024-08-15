@@ -6,14 +6,32 @@ export async function GET(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
 
-    // 這裡應該是您的實際邏輯來獲取房地產趨勢數據
-    const houses = await db
-      .collection("presale_houses")
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "20");
+    const region = url.searchParams.get("region");
+    const skip = (page - 1) * limit;
+
+    if (!region) {
+      return NextResponse.json({ error: "缺少地區參數" }, { status: 400 });
+    }
+
+    const collection = db.collection(`presale_houses_${region}`);
+    console.log("Querying collection:", collection);
+    const totalCount = await collection.countDocuments();
+    const houses = await collection
       .find({})
-      .limit(10)
+      .sort({ 交易年月日: -1 })
+      .skip(skip)
+      .limit(limit)
       .toArray();
 
-    return NextResponse.json(houses);
+    return NextResponse.json({
+      houses,
+      totalCount,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+    });
   } catch (error) {
     console.error("Database Error:", error);
     return NextResponse.json(
@@ -22,7 +40,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
 export async function POST(request: NextRequest) {
   try {
     const client = await clientPromise;

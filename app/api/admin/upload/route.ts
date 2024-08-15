@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
 import csv from "csv-parser";
 
@@ -7,12 +7,18 @@ function squareMetersToPin(squareMeters: number): number {
   return squareMeters / 3.305785;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const file = formData.get("file") as File;
+  const region = formData.get("region") as string;
+  const REGION_MAP = {
+    taipei: "taipei",
+    newTaipei: "newTaipei",
+    taoyuan: "taoyuan",
+  };
 
-  if (!file) {
-    return NextResponse.json({ error: "沒有檔案上傳" }, { status: 400 });
+  if (!file || !region) {
+    return NextResponse.json({ error: "缺少檔案或地區信息" }, { status: 400 });
   }
 
   const client = new MongoClient(process.env.MONGODB_URI as string);
@@ -20,7 +26,9 @@ export async function POST(request: Request) {
   try {
     await client.connect();
     const db = client.db(process.env.MONGODB_DB);
-    const collection = db.collection("presale_houses");
+    const collection = db.collection(
+      `presale_houses_${REGION_MAP[region as keyof typeof REGION_MAP]}`
+    );
 
     const fileContent = await file.arrayBuffer();
     const buffer = Buffer.from(fileContent);
@@ -92,7 +100,12 @@ export async function POST(request: Request) {
 
       const updateResult = await collection.updateOne(
         filter,
-        { $set: data },
+        {
+          $set: {
+            ...data,
+            region: REGION_MAP[region as keyof typeof REGION_MAP],
+          },
+        },
         { upsert: true }
       );
 

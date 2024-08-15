@@ -13,12 +13,20 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Upload, Trash2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function AdminPage() {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDeletingData, setIsDeletingData] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState("");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -32,9 +40,14 @@ export default function AdminPage() {
       setMessage("請選擇一個檔案");
       return;
     }
+    if (!selectedRegion) {
+      setMessage("請選擇一個地區");
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("region", selectedRegion);
 
     setIsLoading(true);
     setMessage("正在上傳並處理檔案，請稍候...");
@@ -87,6 +100,16 @@ export default function AdminPage() {
                 className="cursor-pointer"
               />
             </div>
+            <Select onValueChange={setSelectedRegion}>
+              <SelectTrigger>
+                <SelectValue placeholder="選擇地區" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="taipei">台北</SelectItem>
+                <SelectItem value="new_taipei">新北</SelectItem>
+                <SelectItem value="taoyuan">桃園</SelectItem>
+              </SelectContent>
+            </Select>
             <Button type="submit" disabled={isLoading} className="w-full">
               {isLoading ? (
                 <>

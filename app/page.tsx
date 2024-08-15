@@ -11,6 +11,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface House {
   建案名稱: string;
@@ -27,9 +34,22 @@ interface House {
   交易年月日: string;
 }
 
-async function getPresaleHouses() {
+interface PaginatedResponse {
+  houses: House[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+}
+const REGIONS = ["taipei", "newTaipei", "taoyuan"] as const;
+type Region = (typeof REGIONS)[number];
+
+async function getPresaleHouses(
+  page: number,
+  limit: number,
+  region: Region
+): Promise<PaginatedResponse> {
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/realEstateTrends`,
+    `/api/realEstateTrends?page=${page}&limit=${limit}&region=${region}`,
     { cache: "no-store" }
   );
   if (!res.ok) {
@@ -41,17 +61,24 @@ async function getPresaleHouses() {
 export default function Home() {
   const [houses, setHouses] = useState<House[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<Region>("taipei");
 
   const itemsPerPage = 20;
-  const totalPages = Math.ceil(houses.length / itemsPerPage);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const data = await getPresaleHouses();
-        setHouses(data);
+        setIsLoading(true);
+        const data = await getPresaleHouses(
+          currentPage,
+          itemsPerPage,
+          selectedRegion as Region
+        );
+        setHouses(data.houses);
+        setTotalPages(data.totalPages);
         setIsLoading(false);
       } catch (err) {
         setError("Failed to load data");
@@ -59,12 +86,7 @@ export default function Home() {
       }
     }
     fetchData();
-  }, []);
-
-  const currentHouses = houses.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  }, [currentPage, selectedRegion]);
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
@@ -72,6 +94,24 @@ export default function Home() {
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-4">預售屋資料</h1>
+      <div className="mb-4">
+        <Select
+          value={selectedRegion}
+          onValueChange={(value) => {
+            setSelectedRegion(value as Region);
+            setCurrentPage(1);
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="選擇地區" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="taipei">台北</SelectItem>
+            <SelectItem value="newTaipei">新北</SelectItem>
+            <SelectItem value="taoyuan">桃園</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -89,7 +129,7 @@ export default function Home() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {currentHouses.map((house, index) => (
+          {houses.map((house, index) => (
             <TableRow key={index}>
               <TableCell>{house.交易年月日}</TableCell>
               <TableCell>{house.鄉鎮市區}</TableCell>
@@ -116,6 +156,9 @@ export default function Home() {
           >
             Previous
           </Button>
+          <span className="mx-2">
+            Page {currentPage} of {totalPages}
+          </span>
           <Button
             variant="outline"
             size="sm"
