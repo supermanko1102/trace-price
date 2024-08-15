@@ -39,9 +39,14 @@ export async function POST(request: NextRequest) {
       bufferStream.end(buffer);
 
       const results: any[] = [];
+      let rowCount = 1;
       bufferStream
         .pipe(csv())
         .on("data", (data: any) => {
+          rowCount++;
+          if (rowCount === 2) {
+            return;
+          }
           const buildingArea = parseFloat(data["建物移轉總面積平方公尺"]) || 0;
           const parkingArea = parseFloat(data["車位移轉總面積平方公尺"]) || 0;
           const totalPrice = parseInt(data["總價元"]) || 0;

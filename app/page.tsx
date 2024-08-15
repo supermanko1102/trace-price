@@ -40,6 +40,12 @@ interface PaginatedResponse {
   currentPage: number;
   totalPages: number;
 }
+interface AveragePriceData {
+  district: string;
+  averagePricePerPin: number;
+  count: number;
+}
+
 const REGIONS = ["taipei", "newTaipei", "taoyuan"] as const;
 type Region = (typeof REGIONS)[number];
 
@@ -57,6 +63,15 @@ async function getPresaleHouses(
   }
   return res.json();
 }
+async function getAveragePriceByDistrict(
+  region: Region
+): Promise<AveragePriceData[]> {
+  const res = await fetch(`/api/averagePriceByDistrict?region=${region}`);
+  if (!res.ok) {
+    throw new Error("Failed to fetch average price data");
+  }
+  return res.json();
+}
 
 export default function Home() {
   const [houses, setHouses] = useState<House[]>([]);
@@ -65,6 +80,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<Region>("taipei");
+  const [averagePrices, setAveragePrices] = useState<AveragePriceData[]>([]);
 
   const itemsPerPage = 20;
 
@@ -87,6 +103,17 @@ export default function Home() {
     }
     fetchData();
   }, [currentPage, selectedRegion]);
+  useEffect(() => {
+    async function fetchAveragePrices() {
+      try {
+        const data = await getAveragePriceByDistrict(selectedRegion);
+        setAveragePrices(data);
+      } catch (error) {
+        console.error("Failed to fetch average prices:", error);
+      }
+    }
+    fetchAveragePrices();
+  }, [selectedRegion]);
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
@@ -94,6 +121,7 @@ export default function Home() {
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-4">預售屋資料</h1>
+
       <div className="mb-4">
         <Select
           value={selectedRegion}
@@ -111,6 +139,16 @@ export default function Home() {
             <SelectItem value="taoyuan">桃園</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      <h2 className="text-xl font-bold mt-8 mb-4">各區平均房價</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {averagePrices.map((item) => (
+          <div key={item.district} className="bg-white p-4 rounded shadow">
+            <h3 className="font-bold">{item.district}</h3>
+            <p>平均每坪價格: {item.averagePricePerPin.toLocaleString()} 元</p>
+            <p>資料筆數: {item.count}</p>
+          </div>
+        ))}
       </div>
       <Table>
         <TableHeader>
@@ -136,12 +174,12 @@ export default function Home() {
               <TableCell>{house.建案名稱}</TableCell>
               <TableCell>{house.主要用途}</TableCell>
               <TableCell>{house.棟及號}</TableCell>
-              <TableCell>{house.主建物每坪價格.toFixed(2)}</TableCell>
-              <TableCell>{house.主建物面積.toFixed(2)} </TableCell>
-              <TableCell>{house.主建物總價.toFixed(2)}</TableCell>
-              <TableCell>{house.車位總價元.toFixed(2)}</TableCell>
-              <TableCell>{house.車位移轉總面積坪.toFixed(2)}</TableCell>
-              <TableCell>{house.總價元.toFixed(2)}</TableCell>
+              <TableCell>{house.主建物每坪價格.toFixed(0)}</TableCell>
+              <TableCell>{house.主建物面積.toFixed(0)} </TableCell>
+              <TableCell>{house.主建物總價.toFixed(0)}</TableCell>
+              <TableCell>{house.車位總價元.toFixed(0)}</TableCell>
+              <TableCell>{house.車位移轉總面積坪.toFixed(0)}</TableCell>
+              <TableCell>{house.總價元.toFixed(0)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

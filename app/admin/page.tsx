@@ -20,13 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+const REGIONS = ["taipei", "newTaipei", "taoyuan"] as const;
+type Region = (typeof REGIONS)[number];
 
 export default function AdminPage() {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDeletingData, setIsDeletingData] = useState(false);
-  const [selectedRegion, setSelectedRegion] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState<Region>("taipei");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -100,13 +102,15 @@ export default function AdminPage() {
                 className="cursor-pointer"
               />
             </div>
-            <Select onValueChange={setSelectedRegion}>
+            <Select
+              onValueChange={(value) => setSelectedRegion(value as Region)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="選擇地區" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="taipei">台北</SelectItem>
-                <SelectItem value="new_taipei">新北</SelectItem>
+                <SelectItem value="newTaipei">新北</SelectItem>
                 <SelectItem value="taoyuan">桃園</SelectItem>
               </SelectContent>
             </Select>
