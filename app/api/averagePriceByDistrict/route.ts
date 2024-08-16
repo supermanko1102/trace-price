@@ -4,26 +4,95 @@ import { MongoClient } from "mongodb";
 const REGIONS = ["taipei", "newTaipei", "taoyuan"] as const;
 type Region = (typeof REGIONS)[number];
 
+let client: MongoClient;
+
+async function connectToDatabase() {
+  if (!client) {
+    client = new MongoClient(process.env.MONGODB_URI as string);
+    await client.connect();
+  }
+  return client;
+}
+
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const region = url.searchParams.get("region") as Region;
+  const startDate = url.searchParams.get("startDate");
+  const endDate = url.searchParams.get("endDate");
 
-  if (!region || !REGIONS.includes(region)) {
-    return NextResponse.json({ error: "無效的地區參數" }, { status: 400 });
+  if (!region || !REGIONS.includes(region) || !startDate || !endDate) {
+    return NextResponse.json({ error: "無效的參數" }, { status: 400 });
   }
 
-  const client = new MongoClient(process.env.MONGODB_URI as string);
-
   try {
-    await client.connect();
+    const client = await connectToDatabase();
     const db = client.db(process.env.MONGODB_DB);
     const collection = db.collection(`presale_houses_${region}`);
+    const weeklyStatsCollection = db.collection(`weekly_stats_${region}`);
 
+    // 獲取最後更新時間
+    const lastUpdate = await weeklyStatsCollection.findOne(
+      {},
+      { sort: { updatedAt: -1 }, projection: { updatedAt: 1 } }
+    );
+
+    const currentDate = new Date();
+    const oneWeekAgo = new Date(
+      currentDate.getTime() - 7 * 24 * 60 * 60 * 1000
+    );
+
+    // 如果最後更新時間在一週之內，直接返回緩存的數據
+    if (lastUpdate && lastUpdate.updatedAt > oneWeekAgo) {
+      const cachedResult = await weeklyStatsCollection
+        .find({
+          startDate: { $lte: endDate },
+          endDate: { $gte: startDate },
+        })
+        .toArray();
+
+      if (cachedResult.length > 0) {
+        return NextResponse.json(cachedResult);
+      }
+    }
+
+    // 如果沒有最近的緩存數據，重新計算
     const result = await collection
       .aggregate([
         {
+          $match: {
+            交易年月日: {
+              $gte: startDate,
+              $lte: endDate,
+            },
+          },
+        },
+        {
+          $addFields: {
+            西元年: {
+              $add: [{ $toInt: { $substr: ["$交易年月日", 0, 3] } }, 1911],
+            },
+            月: { $toInt: { $substr: ["$交易年月日", 3, 2] } },
+            日: { $toInt: { $substr: ["$交易年月日", 5, 2] } },
+          },
+        },
+        {
+          $addFields: {
+            日期: {
+              $dateFromParts: {
+                year: "$西元年",
+                month: "$月",
+                day: "$日",
+              },
+            },
+          },
+        },
+        {
           $group: {
-            _id: "$鄉鎮市區",
+            _id: {
+              district: "$鄉鎮市區",
+              year: { $year: "$日期" },
+              week: { $week: "$日期" },
+            },
             averagePricePerPin: { $avg: "$主建物每坪價格" },
             count: { $sum: 1 },
           },
@@ -31,22 +100,35 @@ export async function GET(request: NextRequest) {
         {
           $project: {
             _id: 0,
-            district: "$_id",
+            district: "$_id.district",
+            year: "$_id.year",
+            week: "$_id.week",
             averagePricePerPin: { $round: ["$averagePricePerPin", 0] },
             count: 1,
           },
         },
         {
-          $sort: { district: 1 },
+          $sort: { district: 1, year: 1, week: 1 },
         },
       ])
       .toArray();
+
+    // 更新緩存
+    await weeklyStatsCollection.deleteMany({
+      startDate: { $gte: startDate },
+      endDate: { $lte: endDate },
+    });
+
+    await weeklyStatsCollection.insertOne({
+      startDate,
+      endDate,
+      data: result,
+      updatedAt: new Date(),
+    });
 
     return NextResponse.json(result);
   } catch (error) {
     console.error("資料庫操作錯誤:", error);
     return NextResponse.json({ error: "資料庫操作失敗" }, { status: 500 });
-  } finally {
-    await client.close();
   }
 }

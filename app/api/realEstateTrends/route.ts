@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
     }
 
     const collection = db.collection(`presale_houses_${region}`);
-    console.log("Querying collection:", collection);
     const totalCount = await collection.countDocuments();
     const houses = await collection
       .find({})

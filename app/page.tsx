@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import HousePriceTrendChart from "@/components/chart/HousePriceTrendChart";
 
 interface House {
   建案名稱: string;
@@ -40,10 +41,24 @@ interface PaginatedResponse {
   currentPage: number;
   totalPages: number;
 }
-interface AveragePriceData {
+
+interface DataPoint {
   district: string;
+  year: number;
+  week: number;
   averagePricePerPin: number;
   count: number;
+}
+
+interface RegionData {
+  _id: string;
+  startDate: string;
+  endDate: string;
+  data: DataPoint[];
+}
+
+interface PriceData {
+  [key: string]: RegionData;
 }
 
 const REGIONS = ["taipei", "newTaipei", "taoyuan"] as const;
@@ -63,14 +78,16 @@ async function getPresaleHouses(
   }
   return res.json();
 }
-async function getAveragePriceByDistrict(
-  region: Region
-): Promise<AveragePriceData[]> {
-  const res = await fetch(`/api/averagePriceByDistrict?region=${region}`);
+
+async function getAveragePriceByDistrict(region: Region): Promise<RegionData> {
+  const res = await fetch(
+    `/api/averagePriceByDistrict?region=${region}&startDate=1130101&endDate=1131231`
+  );
   if (!res.ok) {
     throw new Error("Failed to fetch average price data");
   }
-  return res.json();
+  const data = await res.json();
+  return data;
 }
 
 export default function Home() {
@@ -80,7 +97,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<Region>("taipei");
-  const [averagePrices, setAveragePrices] = useState<AveragePriceData[]>([]);
+  const [priceData, setPriceData] = useState<PriceData | null>(null);
 
   const itemsPerPage = 20;
 
@@ -88,35 +105,40 @@ export default function Home() {
     async function fetchData() {
       try {
         setIsLoading(true);
-        const data = await getPresaleHouses(
-          currentPage,
-          itemsPerPage,
-          selectedRegion as Region
-        );
-        setHouses(data.houses);
-        setTotalPages(data.totalPages);
+        console.log("Fetching data...");
+        const [housesData, regionPriceData] = await Promise.all([
+          getPresaleHouses(currentPage, itemsPerPage, selectedRegion as Region),
+          getAveragePriceByDistrict(selectedRegion as Region),
+        ]);
+        setHouses(housesData.houses);
+        setTotalPages(housesData.totalPages);
+        setPriceData((prevData) => ({
+          ...prevData,
+          [selectedRegion]: regionPriceData,
+        }));
         setIsLoading(false);
       } catch (err) {
+        console.error("Error fetching data:", err);
         setError("Failed to load data");
         setIsLoading(false);
       }
     }
     fetchData();
   }, [currentPage, selectedRegion]);
-  useEffect(() => {
-    async function fetchAveragePrices() {
-      try {
-        const data = await getAveragePriceByDistrict(selectedRegion);
-        setAveragePrices(data);
-      } catch (error) {
-        console.error("Failed to fetch average prices:", error);
-      }
-    }
-    fetchAveragePrices();
-  }, [selectedRegion]);
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  useEffect(() => {
+    console.log("Price data updated:", priceData);
+  }, [priceData]);
+
+  console.log("Rendering with price data:", priceData);
+
+  if (isLoading) return <div>載入中...</div>;
+  if (error) return <div>錯誤: {error}</div>;
+
+  console.log(
+    "Price data before rendering chart:",
+    JSON.stringify(priceData, null, 2)
+  );
 
   return (
     <div className="container mx-auto py-10">
@@ -140,15 +162,15 @@ export default function Home() {
           </SelectContent>
         </Select>
       </div>
-      <h2 className="text-xl font-bold mt-8 mb-4">各區平均房價</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {averagePrices.map((item) => (
-          <div key={item.district} className="bg-white p-4 rounded shadow">
-            <h3 className="font-bold">{item.district}</h3>
-            <p>平均每坪價格: {item.averagePricePerPin.toLocaleString()} 元</p>
-            <p>資料筆數: {item.count}</p>
-          </div>
-        ))}
+      <div>
+        {priceData && priceData[selectedRegion] ? (
+          <HousePriceTrendChart
+            data={priceData[selectedRegion] as any}
+            selectedRegion={selectedRegion}
+          />
+        ) : (
+          <p>載入中...</p>
+        )}
       </div>
       <Table>
         <TableHeader>
@@ -192,10 +214,10 @@ export default function Home() {
             onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
             disabled={currentPage === 1}
           >
-            Previous
+            上一頁
           </Button>
           <span className="mx-2">
-            Page {currentPage} of {totalPages}
+            第 {currentPage} 頁，共 {totalPages} 頁
           </span>
           <Button
             variant="outline"
@@ -205,7 +227,7 @@ export default function Home() {
             }
             disabled={currentPage === totalPages}
           >
-            Next
+            下一頁
           </Button>
         </Pagination>
       </div>
