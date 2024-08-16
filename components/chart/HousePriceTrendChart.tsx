@@ -1,5 +1,15 @@
-import React from "react";
-import { ResponsiveLine } from "@nivo/line";
+import React, { useState, useMemo } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { format } from "date-fns";
 
 interface DataPoint {
   count: number;
@@ -18,156 +28,119 @@ interface RegionData {
   data: DataPoint[];
 }
 
-interface ChartData {
-  id: string;
-  data: { x: string; y: number }[];
-}
-
 interface HousePriceTrendChartProps {
   data: RegionData[];
   selectedRegion: string;
 }
 
-// 新增一個格式化價格的函數
 const formatPrice = (price: number) => {
   const tenThousand = Math.floor(price / 10000);
   const remainder = Math.round((price % 10000) / 1000);
   return `${tenThousand}萬${remainder > 0 ? remainder : ""}`;
 };
 
+const getColorFromString = (str: string) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = hash % 360;
+  return `hsl(${hue}, 70%, 50%)`;
+};
+
+const processRegionData = (regionDataArray: RegionData[]) => {
+  const allData: { [key: string]: any } = {};
+
+  regionDataArray.forEach((regionData) => {
+    regionData.data.forEach((point) => {
+      const date = `${point.year}-${point.month
+        .toString()
+        .padStart(2, "0")}-${point.day.toString().padStart(2, "0")}`;
+      if (!allData[date]) {
+        allData[date] = { date };
+      }
+      allData[date][point.district] = point.averagePricePerPin;
+    });
+  });
+
+  return Object.values(allData).sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+};
+
 const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
   data,
   selectedRegion,
 }) => {
-  console.log(
-    "HousePriceTrendChart received data:",
-    JSON.stringify(data, null, 2)
-  );
+  const [hoveredDistrict, setHoveredDistrict] = useState<string | null>(null);
 
-  if (
-    !data ||
-    data.length === 0 ||
-    !data[0].data ||
-    data[0].data.length === 0
-  ) {
-    return <div>無可用數據</div>;
-  }
+  const chartData = useMemo(() => processRegionData(data), [data]);
 
-  const processRegionData = (regionDataArray: RegionData[]): ChartData[] => {
-    const districtMap = new Map<string, ChartData>();
-
-    regionDataArray.forEach((regionData) => {
+  const districts = useMemo(() => {
+    const allDistricts = new Set<string>();
+    data.forEach((regionData) => {
       regionData.data.forEach((point) => {
-        const districtId = point.district; // 移除前綴，只使用區域名稱
-        if (!districtMap.has(districtId)) {
-          districtMap.set(districtId, { id: districtId, data: [] });
-        }
-
-        const xValue = `${point.year}-${point.month
-          .toString()
-          .padStart(2, "0")}-${point.day.toString().padStart(2, "0")}`;
-
-        districtMap.get(districtId)!.data.push({
-          x: xValue,
-          y: point.averagePricePerPin,
-        });
+        allDistricts.add(point.district);
       });
     });
-
-    return Array.from(districtMap.values());
-  };
-
-  const chartData = processRegionData(data);
-  console.log("Processed chart data:", JSON.stringify(chartData, null, 2));
-
-  if (chartData.length === 0) {
-    return <div>無可用數據</div>;
-  }
+    return Array.from(allDistricts);
+  }, [data]);
 
   return (
-    <div style={{ height: "500px", width: "100%" }}>
-      <ResponsiveLine
-        data={chartData}
-        margin={{ top: 50, right: 110, bottom: 70, left: 60 }}
-        xScale={{
-          type: "time",
-          format: "%Y-%m-%d",
-          precision: "day",
-        }}
-        xFormat="time:%Y-%m-%d"
-        yScale={{
-          type: "linear",
-          min: "auto",
-          max: "auto",
-          stacked: false,
-          reverse: false,
-        }}
-        yFormat={(value) => formatPrice(value as number)}
-        axisBottom={{
-          format: "%m/%d",
-          tickValues: "every 14 days",
-          legend: "日期",
-          legendOffset: 60,
-          legendPosition: "middle",
-          tickRotation: -45,
-        }}
-        axisLeft={{
-          format: (value) => formatPrice(value),
-          legend: "平均每坪價格",
-          legendOffset: -40,
-          legendPosition: "middle",
-        }}
-        pointSize={3}
-        pointColor={{ theme: "background" }}
-        pointBorderWidth={1}
-        pointBorderColor={{ from: "serieColor" }}
-        pointLabelYOffset={-12}
-        useMesh={true}
-        enableSlices="x"
-        sliceTooltip={({ slice }) => (
-          <div
-            style={{
-              background: "white",
-              padding: "9px 12px",
-              border: "1px solid #ccc",
-            }}
-          >
-            <div>{slice.points[0].data.xFormatted}</div>
-            {slice.points.map((point) => (
-              <div key={point.id}>
-                <strong>{point.serieId}</strong>:{" "}
-                {formatPrice(point.data.y as number)}
-              </div>
+    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">
+        {selectedRegion}房價趨勢
+      </h2>
+      <div className="h-[50vh] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="date"
+              tickFormatter={(date) => format(new Date(date), "MM/dd")}
+            />
+            <YAxis
+              tickFormatter={(value) => formatPrice(value)}
+              label={{
+                value: "平均每坪價格",
+                angle: -90,
+                position: "insideLeft",
+              }}
+            />
+            <Tooltip
+              formatter={(value: number, name: string) => [
+                formatPrice(value),
+                name,
+              ]}
+              labelFormatter={(label) =>
+                format(new Date(label), "yyyy年MM月dd日")
+              }
+            />
+            <Legend />
+            {districts.map((district) => (
+              <Line
+                key={district}
+                type="monotone"
+                dataKey={district}
+                stroke={getColorFromString(district)}
+                strokeWidth={
+                  hoveredDistrict === null || hoveredDistrict === district
+                    ? 5
+                    : 2
+                }
+                dot={false}
+                opacity={
+                  hoveredDistrict === null || hoveredDistrict === district
+                    ? 1
+                    : 0.3
+                }
+                onMouseEnter={() => setHoveredDistrict(district)}
+                onMouseLeave={() => setHoveredDistrict(null)}
+              />
             ))}
-          </div>
-        )}
-        legends={[
-          {
-            anchor: "bottom-right",
-            direction: "column",
-            justify: false,
-            translateX: 100,
-            translateY: 0,
-            itemsSpacing: 0,
-            itemDirection: "left-to-right",
-            itemWidth: 80,
-            itemHeight: 20,
-            itemOpacity: 0.75,
-            symbolSize: 12,
-            symbolShape: "circle",
-            symbolBorderColor: "rgba(0, 0, 0, .5)",
-            effects: [
-              {
-                on: "hover",
-                style: {
-                  itemBackground: "rgba(0, 0, 0, .03)",
-                  itemOpacity: 1,
-                },
-              },
-            ],
-          },
-        ]}
-      />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };
