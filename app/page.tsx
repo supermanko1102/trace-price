@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import HousePriceTrendChart from "@/components/chart/HousePriceTrendChart";
+import { formatPrice } from "@/utils/formatters";
 
 interface House {
   建案名稱: string;
@@ -96,10 +97,10 @@ export default function Home() {
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRegion, setSelectedRegion] = useState<Region>("taipei");
+  const [selectedRegion, setSelectedRegion] = useState<Region>("taoyuan");
   const [priceData, setPriceData] = useState<PriceData | null>(null);
 
-  const itemsPerPage = 20;
+  const itemsPerPage = 15;
 
   useEffect(() => {
     async function fetchData() {
@@ -189,19 +190,21 @@ export default function Home() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {houses.map((house, index) => (
-            <TableRow key={index}>
+          {houses.slice(1).map((house, index) => (
+            <TableRow key={index + 1}>
               <TableCell>{house.交易年月日}</TableCell>
               <TableCell>{house.鄉鎮市區}</TableCell>
               <TableCell>{house.建案名稱}</TableCell>
               <TableCell>{house.主要用途}</TableCell>
               <TableCell>{house.棟及號}</TableCell>
-              <TableCell>{house.主建物每坪價格.toFixed(0)}</TableCell>
-              <TableCell>{house.主建物面積.toFixed(0)} </TableCell>
-              <TableCell>{house.主建物總價.toFixed(0)}</TableCell>
-              <TableCell>{house.車位總價元.toFixed(0)}</TableCell>
-              <TableCell>{house.車位移轉總面積坪.toFixed(0)}</TableCell>
-              <TableCell>{house.總價元.toFixed(0)}</TableCell>
+              <TableCell>
+                {formatPrice(Math.round(house.主建物每坪價格))}
+              </TableCell>
+              <TableCell>{house.主建物面積.toFixed(2)}</TableCell>
+              <TableCell>{formatPrice(Math.round(house.主建物總價))}</TableCell>
+              <TableCell>{formatPrice(Math.round(house.車位總價元))}</TableCell>
+              <TableCell>{house.車位移轉總面積坪.toFixed(2)}</TableCell>
+              <TableCell>{formatPrice(Math.round(house.總價元))}</TableCell>
             </TableRow>
           ))}
         </TableBody>
