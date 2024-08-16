@@ -4,8 +4,10 @@ import { ResponsiveLine } from "@nivo/line";
 interface DataPoint {
   count: number;
   district: string;
+  date: string;
   year: number;
-  week: number;
+  month: number;
+  day: number;
   averagePricePerPin: number;
 }
 
@@ -25,6 +27,13 @@ interface HousePriceTrendChartProps {
   data: RegionData[];
   selectedRegion: string;
 }
+
+// 新增一個格式化價格的函數
+const formatPrice = (price: number) => {
+  const tenThousand = Math.floor(price / 10000);
+  const remainder = Math.round((price % 10000) / 1000);
+  return `${tenThousand}萬${remainder > 0 ? remainder : ""}`;
+};
 
 const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
   data,
@@ -49,14 +58,14 @@ const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
 
     regionDataArray.forEach((regionData) => {
       regionData.data.forEach((point) => {
-        const districtId = `${selectedRegion}-${point.district}`;
+        const districtId = point.district; // 移除前綴，只使用區域名稱
         if (!districtMap.has(districtId)) {
           districtMap.set(districtId, { id: districtId, data: [] });
         }
 
-        const xValue = `${point.year}-W${point.week
+        const xValue = `${point.year}-${point.month
           .toString()
-          .padStart(2, "0")}`;
+          .padStart(2, "0")}-${point.day.toString().padStart(2, "0")}`;
 
         districtMap.get(districtId)!.data.push({
           x: xValue,
@@ -79,13 +88,13 @@ const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
     <div style={{ height: "500px", width: "100%" }}>
       <ResponsiveLine
         data={chartData}
-        margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
+        margin={{ top: 50, right: 110, bottom: 70, left: 60 }}
         xScale={{
           type: "time",
-          format: "%Y-W%W",
+          format: "%Y-%m-%d",
           precision: "day",
         }}
-        xFormat="time:%Y-W%W"
+        xFormat="time:%Y-%m-%d"
         yScale={{
           type: "linear",
           min: "auto",
@@ -93,25 +102,45 @@ const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
           stacked: false,
           reverse: false,
         }}
-        yFormat=" >-.2f"
+        yFormat={(value) => formatPrice(value as number)}
         axisBottom={{
-          format: "%Y-W%W",
-          tickValues: "every 2 weeks",
-          legend: "年份-週數",
-          legendOffset: 36,
+          format: "%m/%d",
+          tickValues: "every 14 days",
+          legend: "日期",
+          legendOffset: 60,
           legendPosition: "middle",
+          tickRotation: -45,
         }}
         axisLeft={{
+          format: (value) => formatPrice(value),
           legend: "平均每坪價格",
           legendOffset: -40,
           legendPosition: "middle",
         }}
-        pointSize={10}
+        pointSize={3}
         pointColor={{ theme: "background" }}
-        pointBorderWidth={2}
+        pointBorderWidth={1}
         pointBorderColor={{ from: "serieColor" }}
         pointLabelYOffset={-12}
         useMesh={true}
+        enableSlices="x"
+        sliceTooltip={({ slice }) => (
+          <div
+            style={{
+              background: "white",
+              padding: "9px 12px",
+              border: "1px solid #ccc",
+            }}
+          >
+            <div>{slice.points[0].data.xFormatted}</div>
+            {slice.points.map((point) => (
+              <div key={point.id}>
+                <strong>{point.serieId}</strong>:{" "}
+                {formatPrice(point.data.y as number)}
+              </div>
+            ))}
+          </div>
+        )}
         legends={[
           {
             anchor: "bottom-right",

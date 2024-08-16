@@ -24,6 +24,56 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "缺少檔案或地區信息" }, { status: 400 });
   }
 
+  const requiredColumns = [
+    "鄉鎮市區",
+    "建案名稱",
+    "棟及號",
+    "交易年月日",
+    "土地位置建物門牌",
+    "主要用途",
+    "建物移轉總面積平方公尺",
+    "建物現況格局-房",
+    "建物現況格局-廳",
+    "建物現況格局-衛",
+    "總價元",
+    "單價元平方公尺",
+    "車位類別",
+    "車位移轉總面積平方公尺",
+    "車位總價元",
+  ];
+
+  const fileContent = await file.arrayBuffer();
+  const buffer = Buffer.from(fileContent);
+
+  // 檢查 CSV 文件的列
+  const headers = await new Promise<string[]>((resolve, reject) => {
+    const stream = require("stream");
+    const bufferStream = new stream.PassThrough();
+    bufferStream.end(buffer);
+
+    let headers: string[] = [];
+    bufferStream
+      .pipe(csv())
+      .on("headers", (csvHeaders: string[]) => {
+        headers = csvHeaders;
+        resolve(headers);
+      })
+      .on("error", reject);
+  });
+
+  const missingColumns = requiredColumns.filter(
+    (col) => !headers.includes(col)
+  );
+  if (missingColumns.length > 0) {
+    return NextResponse.json(
+      {
+        error: "檔案格式不正確",
+        missingColumns: missingColumns,
+      },
+      { status: 400 }
+    );
+  }
+
   const client = new MongoClient(process.env.MONGODB_URI as string);
 
   try {

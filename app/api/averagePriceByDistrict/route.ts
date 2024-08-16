@@ -28,22 +28,20 @@ export async function GET(request: NextRequest) {
     const client = await connectToDatabase();
     const db = client.db(process.env.MONGODB_DB);
     const collection = db.collection(`presale_houses_${region}`);
-    const weeklyStatsCollection = db.collection(`weekly_stats_${region}`);
+    const dailyStatsCollection = db.collection(`daily_stats_${region}`);
 
     // 獲取最後更新時間
-    const lastUpdate = await weeklyStatsCollection.findOne(
+    const lastUpdate = await dailyStatsCollection.findOne(
       {},
       { sort: { updatedAt: -1 }, projection: { updatedAt: 1 } }
     );
 
     const currentDate = new Date();
-    const oneWeekAgo = new Date(
-      currentDate.getTime() - 7 * 24 * 60 * 60 * 1000
-    );
+    const oneDayAgo = new Date(currentDate.getTime() - 24 * 60 * 60 * 1000);
 
-    // 如果最後更新時間在一週之內，直接返回緩存的數據
-    if (lastUpdate && lastUpdate.updatedAt > oneWeekAgo) {
-      const cachedResult = await weeklyStatsCollection
+    // 如果最後更新時間在一天之內，直接返回緩存的數據
+    if (lastUpdate && lastUpdate.updatedAt > oneDayAgo) {
+      const cachedResult = await dailyStatsCollection
         .find({
           startDate: { $lte: endDate },
           endDate: { $gte: startDate },
@@ -90,8 +88,7 @@ export async function GET(request: NextRequest) {
           $group: {
             _id: {
               district: "$鄉鎮市區",
-              year: { $year: "$日期" },
-              week: { $week: "$日期" },
+              date: "$日期",
             },
             averagePricePerPin: { $avg: "$主建物每坪價格" },
             count: { $sum: 1 },
@@ -101,25 +98,27 @@ export async function GET(request: NextRequest) {
           $project: {
             _id: 0,
             district: "$_id.district",
-            year: "$_id.year",
-            week: "$_id.week",
+            date: "$_id.date",
+            year: { $year: "$_id.date" },
+            month: { $month: "$_id.date" },
+            day: { $dayOfMonth: "$_id.date" },
             averagePricePerPin: { $round: ["$averagePricePerPin", 0] },
             count: 1,
           },
         },
         {
-          $sort: { district: 1, year: 1, week: 1 },
+          $sort: { district: 1, date: 1 },
         },
       ])
       .toArray();
 
     // 更新緩存
-    await weeklyStatsCollection.deleteMany({
+    await dailyStatsCollection.deleteMany({
       startDate: { $gte: startDate },
       endDate: { $lte: endDate },
     });
 
-    await weeklyStatsCollection.insertOne({
+    await dailyStatsCollection.insertOne({
       startDate,
       endDate,
       data: result,
