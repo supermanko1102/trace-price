@@ -20,83 +20,15 @@ import {
 } from "@/components/ui/select";
 import HousePriceTrendChart from "@/components/chart/HousePriceTrendChart";
 import { formatPrice } from "@/utils/formatters";
-
-interface House {
-  建案名稱: string;
-  棟及號: string;
-  鄉鎮市區: string;
-  主要用途: string;
-  總價元: number;
-  建物移轉總面積坪: number;
-  主建物每坪價格: number;
-  主建物面積: number;
-  主建物總價: number;
-  車位總價元: number;
-  車位移轉總面積坪: number;
-  交易年月日: string;
-}
-
-interface PaginatedResponse {
-  houses: House[];
-  totalCount: number;
-  currentPage: number;
-  totalPages: number;
-}
-
-interface RegionData {
-  count: number;
-  district: string;
-  date: string;
-  year: number;
-  month: number;
-  day: number;
-  averagePricePerPin: number;
-}
+import { House, RegionData } from "../types/types";
+import {
+  getPresaleHouses,
+  getDistricts,
+  getAveragePriceByDistrict,
+} from "./lib/realEstateClient";
 
 const REGIONS = ["taipei", "newTaipei", "taoyuan"] as const;
 type Region = (typeof REGIONS)[number];
-
-async function getPresaleHouses(
-  page: number,
-  limit: number,
-  region: Region,
-  district: string
-): Promise<PaginatedResponse> {
-  const districtParam =
-    district && district !== "all" ? `&district=${district}` : "";
-  const res = await fetch(
-    `/api/realEstateData?action=getRealEstateTrends&page=${page}&limit=${limit}&region=${region}${districtParam}`,
-    { cache: "no-store" }
-  );
-  if (!res.ok) {
-    throw new Error("Failed to fetch data");
-  }
-  return res.json();
-}
-
-async function getDistricts(region: Region): Promise<string[]> {
-  const res = await fetch(
-    `/api/realEstateData?action=getDistricts&region=${region}`,
-    { cache: "no-store" }
-  );
-  if (!res.ok) {
-    throw new Error("獲取鄉鎮市區列表失敗");
-  }
-  const data = await res.json();
-  return data.districts;
-}
-
-async function getAveragePriceByDistrict(
-  region: Region
-): Promise<RegionData[]> {
-  const res = await fetch(
-    `/api/realEstateData?action=getAveragePriceByDistrict&region=${region}&startDate=1130101&endDate=1131231`
-  );
-  if (!res.ok) {
-    throw new Error("Failed to fetch average price data");
-  }
-  return res.json();
-}
 
 export default function Home() {
   const [houses, setHouses] = useState<House[]>([]);
@@ -224,19 +156,25 @@ export default function Home() {
         <TableBody>
           {houses.map((house, index) => (
             <TableRow key={index}>
-              <TableCell>{house.交易年月日}</TableCell>
-              <TableCell>{house.鄉鎮市區}</TableCell>
-              <TableCell>{house.建案名稱}</TableCell>
-              <TableCell>{house.主要用途}</TableCell>
-              <TableCell>{house.棟及號}</TableCell>
+              <TableCell>{house.transactionDate}</TableCell>
+              <TableCell>{house.district}</TableCell>
+              <TableCell>{house.projectName}</TableCell>
+              <TableCell>{house.mainUse}</TableCell>
+              <TableCell>{house.buildingNumber}</TableCell>
               <TableCell>
-                {formatPrice(Math.round(house.主建物每坪價格))}
+                {formatPrice(Math.round(house.mainBuildingPricePerPin))}
               </TableCell>
-              <TableCell>{house.主建物面積.toFixed(2)}</TableCell>
-              <TableCell>{formatPrice(Math.round(house.主建物總價))}</TableCell>
-              <TableCell>{formatPrice(Math.round(house.車位總價元))}</TableCell>
-              <TableCell>{house.車位移轉總面積坪.toFixed(2)}</TableCell>
-              <TableCell>{formatPrice(Math.round(house.總價元))}</TableCell>
+              <TableCell>{house.mainBuildingAreaPin.toFixed(2)}</TableCell>
+              <TableCell>
+                {formatPrice(Math.round(house.mainBuildingTotalPriceNTD))}
+              </TableCell>
+              <TableCell>
+                {formatPrice(Math.round(house.parkingPriceNTD))}
+              </TableCell>
+              <TableCell>{house.parkingAreaPin.toFixed(2)}</TableCell>
+              <TableCell>
+                {formatPrice(Math.round(house.totalPriceNTD))}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

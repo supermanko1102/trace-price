@@ -58,7 +58,7 @@ export async function calculateAveragePriceByDistrict(
     .aggregate([
       {
         $match: {
-          交易年月日: {
+          transactionDate: {
             $gte: startDate,
             $lte: endDate,
           },
@@ -66,20 +66,20 @@ export async function calculateAveragePriceByDistrict(
       },
       {
         $addFields: {
-          西元年: {
-            $add: [{ $toInt: { $substr: ["$交易年月日", 0, 3] } }, 1911],
+          year: {
+            $add: [{ $toInt: { $substr: ["$transactionDate", 0, 3] } }, 1911],
           },
-          月: { $toInt: { $substr: ["$交易年月日", 3, 2] } },
-          日: { $toInt: { $substr: ["$交易年月日", 5, 2] } },
+          month: { $toInt: { $substr: ["$transactionDate", 3, 2] } },
+          day: { $toInt: { $substr: ["$transactionDate", 5, 2] } },
         },
       },
       {
         $addFields: {
-          日期: {
+          date: {
             $dateFromParts: {
-              year: "$西元年",
-              month: "$月",
-              day: "$日",
+              year: "$year",
+              month: "$month",
+              day: "$day",
             },
           },
         },
@@ -87,10 +87,10 @@ export async function calculateAveragePriceByDistrict(
       {
         $group: {
           _id: {
-            district: "$鄉鎮市區",
-            date: "$日期",
+            district: "$district",
+            date: "$date",
           },
-          averagePricePerPin: { $avg: "$主建物每坪價格" },
+          averagePricePerPin: { $avg: "$mainBuildingPricePerPin" },
           count: { $sum: 1 },
         },
       },
@@ -114,7 +114,7 @@ export async function calculateAveragePriceByDistrict(
 }
 
 export async function getDistricts(collection: Collection) {
-  const districts = await collection.distinct("鄉鎮市區");
+  const districts = await collection.distinct("district");
   return districts.sort();
 }
 
@@ -126,13 +126,13 @@ export async function getRealEstateTrends(
 ) {
   let query = {};
   if (district && district !== "all") {
-    query = { 鄉鎮市區: district };
+    query = { district: district };
   }
 
   const totalCount = await collection.countDocuments(query);
   const houses = await collection
     .find(query)
-    .sort({ 交易年月日: -1 })
+    .sort({ transactionDate: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
     .toArray();

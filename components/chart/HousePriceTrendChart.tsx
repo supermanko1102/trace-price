@@ -33,18 +33,7 @@ const formatPrice = (price: number) => {
   return `${tenThousand}萬${remainder > 0 ? remainder : ""}`;
 };
 
-const getColorFromString = (str: string) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = hash % 360;
-  return `hsl(${hue}, 70%, 50%)`;
-};
-
 const processRegionData = (dataArray: DataPoint[]) => {
-  console.log("開始處理數據，數組長度:", dataArray.length);
-
   if (dataArray.length === 0) {
     console.warn("輸入數據為空");
     return [];
@@ -84,15 +73,6 @@ const processRegionData = (dataArray: DataPoint[]) => {
   const districts = Array.from(
     new Set(dataArray.map((point) => point.district))
   );
-
-  console.log(
-    "處理的日期範圍:",
-    format(minDate, "yyyy-MM-dd"),
-    "到",
-    format(maxDate, "yyyy-MM-dd")
-  );
-  console.log("處理的區域:", districts);
-
   const result = allDates.map((date) => {
     const dateString = format(date, "yyyy-MM-dd");
     const dataPoint = allData[dateString] || { date: dateString };
@@ -117,8 +97,6 @@ const processRegionData = (dataArray: DataPoint[]) => {
     return dataPoint;
   });
 
-  console.log("處理後的數據點數量:", result.length);
-  console.log("處理後的數據示例:", result.slice(0, 5));
   return result;
 };
 
@@ -127,18 +105,10 @@ const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
   selectedRegion,
   selectedDistrict,
 }) => {
-  console.log("接收到的數據:", data);
-  console.log("數據長度:", data.length);
-  console.log("數據結構示例:", JSON.stringify(data[0], null, 2));
-  console.log("選擇的地區:", selectedRegion);
-  console.log("選擇的區域:", selectedDistrict);
-
   const chartData = useMemo(() => {
     const processedData = processRegionData(data);
-    console.log("處理後的數據:", processedData);
 
     if (!selectedDistrict || selectedDistrict === "") {
-      console.log("未選擇區域，顯示所有數據");
       return processedData;
     }
 
@@ -150,15 +120,8 @@ const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
       }))
       .filter((item) => !isNaN(item.price) && item.price !== undefined);
 
-    console.log("過濾後的數據:", filteredData);
     return filteredData;
   }, [data, selectedDistrict]);
-
-  console.log("最終圖表數據:", chartData);
-
-  useEffect(() => {
-    console.log("API 返回的原始數據:", data);
-  }, [data]);
 
   if (chartData.length === 0) {
     return <div>暫無數據可顯示。請確保已選擇一個區域。</div>;

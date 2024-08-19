@@ -112,27 +112,28 @@ export async function POST(request: NextRequest) {
           }
 
           const formattedData = {
-            鄉鎮市區: data["鄉鎮市區"],
-            建案名稱: data["建案名稱"],
-            棟及號: data["棟及號"],
-            交易年月日: data["交易年月日"],
-            土地位置建物門牌: data["土地位置建物門牌"],
-            主要用途: data["主要用途"],
-            建物移轉總面積平方公尺: buildingArea,
-            建物移轉總面積坪: squareMetersToPin(buildingArea),
-            建物現況格局房: parseInt(data["建物現況格局-房"]) || 0,
-            建物現況格局廳: parseInt(data["建物現況格局-廳"]) || 0,
-            建物現況格局衛: parseInt(data["建物現況格局-衛"]) || 0,
-            總價元: totalPrice,
-            單價元平方公尺: parseFloat(data["單價元平方公尺"]) || 0,
-            單價元坪: (parseFloat(data["單價元平方公尺"]) || 0) * 3.305785,
-            車位類別: data["車位類別"],
-            車位移轉總面積平方公尺: parkingArea,
-            車位移轉總面積坪: squareMetersToPin(parkingArea),
-            車位總價元: parkingPrice,
-            主建物面積: mainBuildingArea,
-            主建物每坪價格: mainBuildingPricePerPin,
-            主建物總價: totalPrice - parkingPrice,
+            district: data["鄉鎮市區"],
+            projectName: data["建案名稱"],
+            buildingNumber: data["棟及號"],
+            transactionDate: data["交易年月日"],
+            address: data["土地位置建物門牌"],
+            mainUse: data["主要用途"],
+            buildingAreaSqm: buildingArea,
+            buildingAreaPin: squareMetersToPin(buildingArea),
+            rooms: parseInt(data["建物現況格局-房"]) || 0,
+            livingRooms: parseInt(data["建物現況格局-廳"]) || 0,
+            bathrooms: parseInt(data["建物現況格局-衛"]) || 0,
+            totalPriceNTD: totalPrice,
+            unitPricePerSqm: parseFloat(data["單價元平方公尺"]) || 0,
+            unitPricePerPin:
+              (parseFloat(data["單價元平方公尺"]) || 0) * 3.305785,
+            parkingType: data["車位類別"],
+            parkingAreaSqm: parkingArea,
+            parkingAreaPin: squareMetersToPin(parkingArea),
+            parkingPriceNTD: parkingPrice,
+            mainBuildingAreaPin: mainBuildingArea,
+            mainBuildingPricePerPin: mainBuildingPricePerPin,
+            mainBuildingTotalPriceNTD: totalPrice - parkingPrice,
           };
           results.push(formattedData);
         })
@@ -145,10 +146,10 @@ export async function POST(request: NextRequest) {
 
     for (const data of results) {
       const filter = {
-        鄉鎮市區: data.鄉鎮市區,
-        建案名稱: data.建案名稱,
-        棟及號: data.棟及號,
-        交易年月日: data.交易年月日,
+        district: data.district,
+        projectName: data.projectName,
+        buildingNumber: data.buildingNumber,
+        transactionDate: data.transactionDate,
       };
 
       const updateResult = await collection.updateOne(
