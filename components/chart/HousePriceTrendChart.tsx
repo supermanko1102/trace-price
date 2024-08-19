@@ -1,15 +1,14 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
-import { format, parseISO, eachDayOfInterval } from "date-fns";
+import { eachDayOfInterval, format, parseISO } from "date-fns";
 import { zhTW } from "date-fns/locale";
 
 interface DataPoint {
@@ -32,6 +31,7 @@ interface RegionData {
 interface HousePriceTrendChartProps {
   data: RegionData[];
   selectedRegion: string;
+  selectedDistrict: string;
 }
 
 const formatPrice = (price: number) => {
@@ -56,17 +56,15 @@ const processRegionData = (regionDataArray: RegionData[]) => {
 
   regionDataArray.forEach((regionData) => {
     regionData.data.forEach((point) => {
-      const date = `${point.year}-${point.month
-        .toString()
-        .padStart(2, "0")}-${point.day.toString().padStart(2, "0")}`;
-      if (!allData[date]) {
-        allData[date] = { date };
+      const date = new Date(point.year, point.month - 1, point.day);
+      const dateString = format(date, "yyyy-MM-dd");
+      if (!allData[dateString]) {
+        allData[dateString] = { date: dateString };
       }
-      allData[date][point.district] = point.averagePricePerPin;
+      allData[dateString][point.district] = point.averagePricePerPin;
 
-      const currentDate = parseISO(date);
-      if (!minDate || currentDate < minDate) minDate = currentDate;
-      if (!maxDate || currentDate > maxDate) maxDate = currentDate;
+      if (!minDate || date < minDate) minDate = date;
+      if (!maxDate || date > maxDate) maxDate = date;
     });
   });
 
@@ -77,20 +75,14 @@ const processRegionData = (regionDataArray: RegionData[]) => {
     (key) => key !== "date"
   );
 
-  const processedData = allDates.map((date) => {
+  return allDates.map((date) => {
     const dateString = format(date, "yyyy-MM-dd");
     const dataPoint = allData[dateString] || { date: dateString };
 
     districts.forEach((district) => {
       if (dataPoint[district] === undefined) {
-        // 找到最近的前一個有效數據點
         let prevDate = new Date(date);
-        while (
-          minDate &&
-          maxDate &&
-          prevDate >= minDate &&
-          prevDate <= maxDate
-        ) {
+        while (minDate && prevDate >= minDate) {
           prevDate.setDate(prevDate.getDate() - 1);
           const prevDateString = format(prevDate, "yyyy-MM-dd");
           if (
@@ -106,53 +98,55 @@ const processRegionData = (regionDataArray: RegionData[]) => {
 
     return dataPoint;
   });
-
-  return processedData;
 };
 
 const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
   data,
   selectedRegion,
+  selectedDistrict,
 }) => {
-  const [hoveredDistrict, setHoveredDistrict] = useState<string | null>(null);
-
-  const chartData = useMemo(() => processRegionData(data), [data]);
-
-  const districts = useMemo(() => {
-    const allDistricts = new Set<string>();
-    data.forEach((regionData) => {
-      regionData.data.forEach((point) => {
-        allDistricts.add(point.district);
-      });
-    });
-    return Array.from(allDistricts);
-  }, [data]);
+  const chartData = useMemo(() => {
+    if (!selectedDistrict) return [];
+    return processRegionData(data)
+      .map((item) => ({
+        date: item.date,
+        price: item[selectedDistrict],
+      }))
+      .filter((item) => item.price !== undefined);
+  }, [data, selectedDistrict]);
 
   const formatXAxis = (tickItem: string) => {
-    const date = parseISO(tickItem);
-    return format(date, "MM/dd", { locale: zhTW });
+    return format(parseISO(tickItem), "MM/dd", { locale: zhTW });
   };
 
   const formatTooltipLabel = (label: string) => {
-    const date = parseISO(label);
-    return format(date, "yyyy年MM月dd日", { locale: zhTW });
+    return format(parseISO(label), "yyyy年MM月dd日", { locale: zhTW });
   };
+
+  if (!selectedDistrict) {
+    return <div>請選擇一個鄉鎮區</div>;
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 className="text-2xl font-bold mb-4 text-gray-800">
-        {selectedRegion}房價趨勢
+        {selectedDistrict}預售屋房價趨勢
       </h2>
       <div className="h-[60vh] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData}>
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#8884d8" stopOpacity={0.1} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
               tickFormatter={formatXAxis}
               interval="preserveStartEnd"
               minTickGap={50}
-              tick={{ fontSize: 12 }}
             />
             <YAxis
               tickFormatter={(value) => formatPrice(value)}
@@ -160,60 +154,20 @@ const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
                 value: "平均每坪價格",
                 angle: -90,
                 position: "insideLeft",
-                style: { textAnchor: "middle" },
               }}
-              tick={{ fontSize: 12 }}
             />
             <Tooltip
-              formatter={(value: number, name: string) => [
-                formatPrice(value),
-                name,
-              ]}
               labelFormatter={formatTooltipLabel}
+              formatter={(value: number) => [formatPrice(value), "價格"]}
             />
-            <Legend />
-            {districts.map((district) => (
-              <Line
-                key={district}
-                type="monotone"
-                dataKey={district}
-                stroke={getColorFromString(district)}
-                strokeWidth={
-                  hoveredDistrict === null || hoveredDistrict === district
-                    ? 5
-                    : 2
-                }
-                dot={
-                  ((props: any) => {
-                    const { cx, cy, payload } = props;
-                    const hasRealData = data.some((regionData) =>
-                      regionData.data.some(
-                        (point) =>
-                          point.date === payload.date &&
-                          point.district === district
-                      )
-                    );
-                    return hasRealData ? (
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={3}
-                        fill={getColorFromString(district)}
-                      />
-                    ) : null;
-                  }) as React.ComponentProps<typeof Line>["dot"]
-                }
-                connectNulls={true}
-                opacity={
-                  hoveredDistrict === null || hoveredDistrict === district
-                    ? 1
-                    : 0.3
-                }
-                onMouseEnter={() => setHoveredDistrict(district)}
-                onMouseLeave={() => setHoveredDistrict(null)}
-              />
-            ))}
-          </LineChart>
+            <Area
+              type="monotone"
+              dataKey="price"
+              stroke="#8884d8"
+              fillOpacity={1}
+              fill="url(#colorPrice)"
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>

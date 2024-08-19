@@ -43,23 +43,19 @@ interface PaginatedResponse {
   totalPages: number;
 }
 
-interface DataPoint {
-  district: string;
-  year: number;
-  week: number;
-  averagePricePerPin: number;
-  count: number;
-}
-
 interface RegionData {
   _id: string;
   startDate: string;
   endDate: string;
-  data: DataPoint[];
-}
-
-interface PriceData {
-  [key: string]: RegionData;
+  data: {
+    district: string;
+    date: string;
+    year: number;
+    month: number;
+    day: number;
+    averagePricePerPin: number;
+    count: number;
+  }[];
 }
 
 const REGIONS = ["taipei", "newTaipei", "taoyuan"] as const;
@@ -68,10 +64,13 @@ type Region = (typeof REGIONS)[number];
 async function getPresaleHouses(
   page: number,
   limit: number,
-  region: Region
+  region: Region,
+  district: string
 ): Promise<PaginatedResponse> {
+  const districtParam =
+    district && district !== "all" ? `&district=${district}` : "";
   const res = await fetch(
-    `/api/realEstateTrends?page=${page}&limit=${limit}&region=${region}`,
+    `/api/realEstateTrends?page=${page}&limit=${limit}&region=${region}${districtParam}`,
     { cache: "no-store" }
   );
   if (!res.ok) {
@@ -80,15 +79,28 @@ async function getPresaleHouses(
   return res.json();
 }
 
-async function getAveragePriceByDistrict(region: Region): Promise<RegionData> {
+async function getDistricts(region: Region): Promise<string[]> {
+  const res = await fetch(
+    `/api/realEstateTrends?region=${region}&action=getDistricts`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) {
+    throw new Error("獲取鄉鎮市區列表失敗");
+  }
+  const data = await res.json();
+  return data.districts;
+}
+
+async function getAveragePriceByDistrict(
+  region: Region
+): Promise<RegionData[]> {
   const res = await fetch(
     `/api/averagePriceByDistrict?region=${region}&startDate=1130101&endDate=1131231`
   );
   if (!res.ok) {
     throw new Error("Failed to fetch average price data");
   }
-  const data = await res.json();
-  return data;
+  return res.json();
 }
 
 export default function Home() {
@@ -98,25 +110,41 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<Region>("taoyuan");
-  const [priceData, setPriceData] = useState<PriceData | null>(null);
-
+  const [priceData, setPriceData] = useState<RegionData[] | null>(null);
+  const [districts, setDistricts] = useState<string[]>([]);
+  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
   const itemsPerPage = 15;
+
+  useEffect(() => {
+    async function fetchDistricts() {
+      try {
+        const districtsData = await getDistricts(selectedRegion);
+        setDistricts(districtsData);
+        setSelectedDistrict("");
+      } catch (err) {
+        console.error("Error fetching districts:", err);
+        setError("Failed to load districts");
+      }
+    }
+    fetchDistricts();
+  }, [selectedRegion]);
 
   useEffect(() => {
     async function fetchData() {
       try {
         setIsLoading(true);
-        console.log("Fetching data...");
         const [housesData, regionPriceData] = await Promise.all([
-          getPresaleHouses(currentPage, itemsPerPage, selectedRegion as Region),
-          getAveragePriceByDistrict(selectedRegion as Region),
+          getPresaleHouses(
+            currentPage,
+            itemsPerPage,
+            selectedRegion,
+            selectedDistrict
+          ),
+          getAveragePriceByDistrict(selectedRegion),
         ]);
         setHouses(housesData.houses);
         setTotalPages(housesData.totalPages);
-        setPriceData((prevData) => ({
-          ...prevData,
-          [selectedRegion]: regionPriceData,
-        }));
+        setPriceData(regionPriceData);
         setIsLoading(false);
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -125,27 +153,16 @@ export default function Home() {
       }
     }
     fetchData();
-  }, [currentPage, selectedRegion]);
-
-  useEffect(() => {
-    console.log("Price data updated:", priceData);
-  }, [priceData]);
-
-  console.log("Rendering with price data:", priceData);
+  }, [currentPage, selectedRegion, selectedDistrict]);
 
   if (isLoading) return <div>載入中...</div>;
   if (error) return <div>錯誤: {error}</div>;
-
-  console.log(
-    "Price data before rendering chart:",
-    JSON.stringify(priceData, null, 2)
-  );
 
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-4">預售屋資料</h1>
 
-      <div className="mb-4">
+      <div className="mb-4 flex space-x-4">
         <Select
           value={selectedRegion}
           onValueChange={(value) => {
@@ -153,7 +170,7 @@ export default function Home() {
             setCurrentPage(1);
           }}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="選擇地區" />
           </SelectTrigger>
           <SelectContent>
@@ -162,17 +179,36 @@ export default function Home() {
             <SelectItem value="taoyuan">桃園</SelectItem>
           </SelectContent>
         </Select>
+
+        <Select
+          value={selectedDistrict}
+          onValueChange={(value) => {
+            setSelectedDistrict(value);
+            setCurrentPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="選擇鄉鎮市區" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部</SelectItem>
+            {districts.map((district) => (
+              <SelectItem key={district} value={district}>
+                {district}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-      <div>
-        {priceData && priceData[selectedRegion] ? (
-          <HousePriceTrendChart
-            data={priceData[selectedRegion] as any}
-            selectedRegion={selectedRegion}
-          />
-        ) : (
-          <p>載入中...</p>
-        )}
-      </div>
+
+      {priceData && (
+        <HousePriceTrendChart
+          data={priceData}
+          selectedRegion={selectedRegion}
+          selectedDistrict={selectedDistrict}
+        />
+      )}
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -190,8 +226,8 @@ export default function Home() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {houses.slice(1).map((house, index) => (
-            <TableRow key={index + 1}>
+          {houses.map((house, index) => (
+            <TableRow key={index}>
               <TableCell>{house.交易年月日}</TableCell>
               <TableCell>{house.鄉鎮市區}</TableCell>
               <TableCell>{house.建案名稱}</TableCell>
@@ -209,6 +245,7 @@ export default function Home() {
           ))}
         </TableBody>
       </Table>
+
       <div className="flex justify-center mt-4">
         <Pagination>
           <Button

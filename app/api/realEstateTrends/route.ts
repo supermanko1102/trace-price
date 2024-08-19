@@ -7,19 +7,33 @@ export async function GET(request: NextRequest) {
     const db = client.db(process.env.MONGODB_DB);
 
     const url = new URL(request.url);
-    const page = parseInt(url.searchParams.get("page") || "1");
-    const limit = parseInt(url.searchParams.get("limit") || "20");
+    const action = url.searchParams.get("action");
     const region = url.searchParams.get("region");
-    const skip = (page - 1) * limit;
 
     if (!region) {
       return NextResponse.json({ error: "缺少地區參數" }, { status: 400 });
     }
 
     const collection = db.collection(`presale_houses_${region}`);
-    const totalCount = await collection.countDocuments();
+
+    if (action === "getDistricts") {
+      const districts = await collection.distinct("鄉鎮市區");
+      return NextResponse.json({ districts: districts.sort() });
+    }
+
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "20");
+    const district = url.searchParams.get("district");
+    const skip = (page - 1) * limit;
+
+    let query = {};
+    if (district && district !== "all") {
+      query = { 鄉鎮市區: district };
+    }
+
+    const totalCount = await collection.countDocuments(query);
     const houses = await collection
-      .find({})
+      .find(query)
       .sort({ 交易年月日: -1 })
       .skip(skip)
       .limit(limit)
