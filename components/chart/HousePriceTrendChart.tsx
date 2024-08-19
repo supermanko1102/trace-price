@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import {
   AreaChart,
   Area,
@@ -21,15 +21,8 @@ interface DataPoint {
   averagePricePerPin: number;
 }
 
-interface RegionData {
-  _id: string;
-  startDate: string;
-  endDate: string;
-  data: DataPoint[];
-}
-
 interface HousePriceTrendChartProps {
-  data: RegionData[];
+  data: DataPoint[];
   selectedRegion: string;
   selectedDistrict: string;
 }
@@ -49,33 +42,58 @@ const getColorFromString = (str: string) => {
   return `hsl(${hue}, 70%, 50%)`;
 };
 
-const processRegionData = (regionDataArray: RegionData[]) => {
+const processRegionData = (dataArray: DataPoint[]) => {
+  console.log("開始處理數據，數組長度:", dataArray.length);
+
+  if (dataArray.length === 0) {
+    console.warn("輸入數據為空");
+    return [];
+  }
+
   const allData: { [key: string]: any } = {};
   let minDate: Date | null = null;
   let maxDate: Date | null = null;
 
-  regionDataArray.forEach((regionData) => {
-    regionData.data.forEach((point) => {
-      const date = new Date(point.year, point.month - 1, point.day);
-      const dateString = format(date, "yyyy-MM-dd");
-      if (!allData[dateString]) {
-        allData[dateString] = { date: dateString };
-      }
-      allData[dateString][point.district] = point.averagePricePerPin;
+  dataArray.forEach((point) => {
+    if (
+      !point.date ||
+      !point.district ||
+      point.averagePricePerPin === undefined
+    ) {
+      console.warn("跳過無效的數據點:", point);
+      return;
+    }
 
-      if (!minDate || date < minDate) minDate = date;
-      if (!maxDate || date > maxDate) maxDate = date;
-    });
+    const date = new Date(point.date);
+    const dateString = format(date, "yyyy-MM-dd");
+    if (!allData[dateString]) {
+      allData[dateString] = { date: dateString };
+    }
+    allData[dateString][point.district] = point.averagePricePerPin;
+
+    if (!minDate || date < minDate) minDate = date;
+    if (!maxDate || date > maxDate) maxDate = date;
   });
 
-  if (!minDate || !maxDate) return [];
+  if (!minDate || !maxDate) {
+    console.warn("無法確定日期範圍");
+    return [];
+  }
 
   const allDates = eachDayOfInterval({ start: minDate, end: maxDate });
-  const districts = Object.keys(Object.values(allData)[0]).filter(
-    (key) => key !== "date"
+  const districts = Array.from(
+    new Set(dataArray.map((point) => point.district))
   );
 
-  return allDates.map((date) => {
+  console.log(
+    "處理的日期範圍:",
+    format(minDate, "yyyy-MM-dd"),
+    "到",
+    format(maxDate, "yyyy-MM-dd")
+  );
+  console.log("處理的區域:", districts);
+
+  const result = allDates.map((date) => {
     const dateString = format(date, "yyyy-MM-dd");
     const dataPoint = allData[dateString] || { date: dateString };
 
@@ -98,6 +116,10 @@ const processRegionData = (regionDataArray: RegionData[]) => {
 
     return dataPoint;
   });
+
+  console.log("處理後的數據點數量:", result.length);
+  console.log("處理後的數據示例:", result.slice(0, 5));
+  return result;
 };
 
 const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
@@ -105,15 +127,42 @@ const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
   selectedRegion,
   selectedDistrict,
 }) => {
+  console.log("接收到的數據:", data);
+  console.log("數據長度:", data.length);
+  console.log("數據結構示例:", JSON.stringify(data[0], null, 2));
+  console.log("選擇的地區:", selectedRegion);
+  console.log("選擇的區域:", selectedDistrict);
+
   const chartData = useMemo(() => {
-    if (!selectedDistrict) return [];
-    return processRegionData(data)
+    const processedData = processRegionData(data);
+    console.log("處理後的數據:", processedData);
+
+    if (!selectedDistrict || selectedDistrict === "") {
+      console.log("未選擇區域，顯示所有數據");
+      return processedData;
+    }
+
+    console.log("處理選定區域的數據:", selectedDistrict);
+    const filteredData = processedData
       .map((item) => ({
         date: item.date,
-        price: item[selectedDistrict],
+        price: Number(item[selectedDistrict]),
       }))
-      .filter((item) => item.price !== undefined);
+      .filter((item) => !isNaN(item.price) && item.price !== undefined);
+
+    console.log("過濾後的數據:", filteredData);
+    return filteredData;
   }, [data, selectedDistrict]);
+
+  console.log("最終圖表數據:", chartData);
+
+  useEffect(() => {
+    console.log("API 返回的原始數據:", data);
+  }, [data]);
+
+  if (chartData.length === 0) {
+    return <div>暫無數據可顯示。請確保已選擇一個區域。</div>;
+  }
 
   const formatXAxis = (tickItem: string) => {
     return format(parseISO(tickItem), "MM/dd", { locale: zhTW });

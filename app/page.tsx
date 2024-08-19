@@ -44,18 +44,13 @@ interface PaginatedResponse {
 }
 
 interface RegionData {
-  _id: string;
-  startDate: string;
-  endDate: string;
-  data: {
-    district: string;
-    date: string;
-    year: number;
-    month: number;
-    day: number;
-    averagePricePerPin: number;
-    count: number;
-  }[];
+  count: number;
+  district: string;
+  date: string;
+  year: number;
+  month: number;
+  day: number;
+  averagePricePerPin: number;
 }
 
 const REGIONS = ["taipei", "newTaipei", "taoyuan"] as const;
@@ -70,7 +65,7 @@ async function getPresaleHouses(
   const districtParam =
     district && district !== "all" ? `&district=${district}` : "";
   const res = await fetch(
-    `/api/realEstateTrends?page=${page}&limit=${limit}&region=${region}${districtParam}`,
+    `/api/realEstateData?action=getRealEstateTrends&page=${page}&limit=${limit}&region=${region}${districtParam}`,
     { cache: "no-store" }
   );
   if (!res.ok) {
@@ -81,7 +76,7 @@ async function getPresaleHouses(
 
 async function getDistricts(region: Region): Promise<string[]> {
   const res = await fetch(
-    `/api/realEstateTrends?region=${region}&action=getDistricts`,
+    `/api/realEstateData?action=getDistricts&region=${region}`,
     { cache: "no-store" }
   );
   if (!res.ok) {
@@ -95,7 +90,7 @@ async function getAveragePriceByDistrict(
   region: Region
 ): Promise<RegionData[]> {
   const res = await fetch(
-    `/api/averagePriceByDistrict?region=${region}&startDate=1130101&endDate=1131231`
+    `/api/realEstateData?action=getAveragePriceByDistrict&region=${region}&startDate=1130101&endDate=1131231`
   );
   if (!res.ok) {
     throw new Error("Failed to fetch average price data");
@@ -111,6 +106,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<Region>("taoyuan");
   const [priceData, setPriceData] = useState<RegionData[] | null>(null);
+  console.log("priceData", priceData);
   const [districts, setDistricts] = useState<string[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
   const itemsPerPage = 15;

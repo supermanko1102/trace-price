@@ -1,0 +1,70 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  connectToDatabase,
+  getCollection,
+  Region,
+  REGIONS,
+} from "@/lib/api/database";
+import {
+  calculateAveragePriceByDistrict,
+  getDistricts,
+  getRealEstateTrends,
+} from "@/lib/api/dataAccess";
+
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const action = url.searchParams.get("action");
+  const region = url.searchParams.get("region") as Region;
+
+  if (!region || !REGIONS.includes(region)) {
+    return NextResponse.json({ error: "無效的地區參數" }, { status: 400 });
+  }
+
+  try {
+    const client = await connectToDatabase();
+    const db = client.db(process.env.MONGODB_DB);
+    const collection = getCollection(db, region);
+
+    switch (action) {
+      case "getDistricts":
+        const districts = await getDistricts(collection);
+        return NextResponse.json({ districts });
+
+      case "getAveragePriceByDistrict":
+        const startDate = url.searchParams.get("startDate");
+        const endDate = url.searchParams.get("endDate");
+        if (!startDate || !endDate) {
+          return NextResponse.json(
+            { error: "無效的日期參數" },
+            { status: 400 }
+          );
+        }
+        const dailyStatsCollection = db.collection(`daily_stats_${region}`);
+        const averagePriceResult = await calculateAveragePriceByDistrict(
+          collection,
+          dailyStatsCollection,
+          startDate,
+          endDate
+        );
+        return NextResponse.json(averagePriceResult);
+
+      case "getRealEstateTrends":
+        const page = parseInt(url.searchParams.get("page") || "1");
+        const limit = parseInt(url.searchParams.get("limit") || "20");
+        const district = url.searchParams.get("district");
+        const trendsResult = await getRealEstateTrends(
+          collection,
+          page,
+          limit,
+          district
+        );
+        return NextResponse.json(trendsResult);
+
+      default:
+        return NextResponse.json({ error: "無效的操作" }, { status: 400 });
+    }
+  } catch (error) {
+    console.error("資料庫操作錯誤:", error);
+    return NextResponse.json({ error: "資料庫操作失敗" }, { status: 500 });
+  }
+}
