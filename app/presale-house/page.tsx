@@ -27,6 +27,7 @@ import {
   getAveragePriceByDistrict,
 } from "@/app/lib/realEstateClient";
 import LoadingSpinner from "@/components/globals/LoadingSpinner";
+import { PreSaleSummary } from "@/components/presale/PreSaleSummary";
 
 const REGIONS = ["taipei", "newTaipei", "taoyuan"] as const;
 type Region = (typeof REGIONS)[number];
@@ -90,6 +91,10 @@ export default function Home() {
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-4">預售屋資料</h1>
+      {/* 添加摘要統計組件 */}
+      {!isLoading && !error && (
+        <PreSaleSummary houses={houses} selectedRegion={selectedRegion} />
+      )}
 
       <div className="mb-4 flex space-x-4">
         <Select
