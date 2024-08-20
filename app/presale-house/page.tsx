@@ -160,7 +160,7 @@ export default function Home() {
 
         <Input
           type="text"
-          placeholder="搜尋項目名稱、地址或建築編號"
+          placeholder="搜尋建案名稱、地址或門牌"
           value={searchTerm}
           onChange={handleSearch}
           className="w-[200px]"
