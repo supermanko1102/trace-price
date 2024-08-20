@@ -1,8 +1,10 @@
 # Presale Housing Data Management System
 
+# 預售屋資料管理系統
+
 ## Project Overview
 
-This is a presale housing data management system developed using Next.js and MongoDB. The system allows administrators to upload presale housing data in CSV format and provides data cleaning functionality.
+This is a presale housing data management system developed using Next.js and MongoDB, focusing on the Taiwan real estate market. The system allows administrators to upload and manage presale housing data in CSV format, providing insights into the local property market trends.
 
 ## Features
 
@@ -63,7 +65,7 @@ This is a presale housing data management system developed using Next.js and Mon
 
 ## Data Format
 
-The uploaded CSV file should include the following fields:
+The uploaded CSV file should include the following fields (based on Taiwan's real estate transaction data format):
 
 - 鄉鎮市區
 - 建案名稱
@@ -81,6 +83,8 @@ The uploaded CSV file should include the following fields:
 - 車位移轉總面積平方公尺
 - 車位總價元
 
+Data Source: [內政部不動產交易](https://lvr.land.moi.gov.tw/)
+
 ## Contribution Guidelines
 
 If you'd like to contribute to this project, please follow these steps:
@@ -93,4 +97,6 @@ If you'd like to contribute to this project, please follow these steps:
 
 ## Contact Information
 
-[caowenjieko@gmail.com]
+[GitHub](https://github.com/supermanko1102)
+[Email](mailto:caowenjieko@gmail.com)
+[LinkedIn](https://www.linkedin.com/in/alex-tsao1102/)

@@ -25,7 +25,7 @@ import {
   getPresaleHouses,
   getDistricts,
   getAveragePriceByDistrict,
-} from "../lib/realEstateClient";
+} from "@/app/lib/realEstateClient";
 import LoadingSpinner from "@/components/globals/LoadingSpinner";
 
 const REGIONS = ["taipei", "newTaipei", "taoyuan"] as const;
@@ -120,7 +120,6 @@ export default function Home() {
             <SelectValue placeholder="選擇鄉鎮市區" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部</SelectItem>
             {districts.map((district) => (
               <SelectItem key={district} value={district}>
                 {district}
