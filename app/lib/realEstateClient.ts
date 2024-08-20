@@ -4,16 +4,20 @@ export async function getPresaleHouses(
   page: number,
   limit: number,
   region: Region,
-  district: string
+  district: string,
+  searchTerm: string = ""
 ): Promise<PaginatedResponse> {
   const districtParam =
     district && district !== "all" ? `&district=${district}` : "";
+  const searchParam = searchTerm
+    ? `&search=${encodeURIComponent(searchTerm)}`
+    : "";
   const res = await fetch(
-    `/api/realEstateData?action=getRealEstateTrends&page=${page}&limit=${limit}&region=${region}${districtParam}`,
+    `/api/realEstateData?action=getRealEstateTrends&page=${page}&limit=${limit}&region=${region}${districtParam}${searchParam}`,
     { cache: "no-store" }
   );
   if (!res.ok) {
-    throw new Error("Failed to fetch data");
+    throw new Error("獲取數據失敗");
   }
   return res.json();
 }

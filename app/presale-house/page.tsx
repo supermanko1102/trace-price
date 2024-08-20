@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Table,
   TableBody,
@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import HousePriceTrendChart from "@/components/chart/HousePriceTrendChart";
 import { formatPrice } from "@/utils/formatters";
 import { House, RegionData } from "@/types/types";
@@ -43,7 +44,58 @@ export default function Home() {
   console.log("priceData", priceData);
   const [districts, setDistricts] = useState<string[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState("");
   const itemsPerPage = 15;
+
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [housesData, regionPriceData] = await Promise.all([
+        getPresaleHouses(
+          currentPage,
+          itemsPerPage,
+          selectedRegion,
+          selectedDistrict,
+          appliedSearchTerm
+        ),
+        getAveragePriceByDistrict(selectedRegion),
+      ]);
+      setHouses(housesData.houses);
+      setTotalPages(housesData.totalPages);
+      setPriceData(regionPriceData);
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Failed to load data");
+      setIsLoading(false);
+    }
+  }, [
+    currentPage,
+    itemsPerPage,
+    selectedRegion,
+    selectedDistrict,
+    appliedSearchTerm,
+  ]);
+
+  useEffect(() => {
+    fetchData();
+  }, [
+    currentPage,
+    selectedRegion,
+    selectedDistrict,
+    appliedSearchTerm,
+    fetchData,
+  ]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handleSearchSubmit = () => {
+    setCurrentPage(1);
+    setAppliedSearchTerm(searchTerm);
+  };
 
   useEffect(() => {
     async function fetchDistricts() {
@@ -59,40 +111,13 @@ export default function Home() {
     fetchDistricts();
   }, [selectedRegion]);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setIsLoading(true);
-        const [housesData, regionPriceData] = await Promise.all([
-          getPresaleHouses(
-            currentPage,
-            itemsPerPage,
-            selectedRegion,
-            selectedDistrict
-          ),
-          getAveragePriceByDistrict(selectedRegion),
-        ]);
-        setHouses(housesData.houses);
-        setTotalPages(housesData.totalPages);
-        setPriceData(regionPriceData);
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load data");
-        setIsLoading(false);
-      }
-    }
-    fetchData();
-  }, [currentPage, selectedRegion, selectedDistrict]);
-
   if (isLoading) return <LoadingSpinner />;
   if (error) return <div>錯誤: {error}</div>;
 
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-4">預售屋資料</h1>
-      {/* 添加摘要統計組件 */}
-      {!isLoading && !error && (
+      {!isLoading && !error && houses.length > 0 && (
         <PreSaleSummary houses={houses} selectedRegion={selectedRegion} />
       )}
 
@@ -132,6 +157,15 @@ export default function Home() {
             ))}
           </SelectContent>
         </Select>
+
+        <Input
+          type="text"
+          placeholder="搜尋項目名稱、地址或建築編號"
+          value={searchTerm}
+          onChange={handleSearch}
+          className="w-[200px]"
+        />
+        <Button onClick={handleSearchSubmit}>搜尋</Button>
       </div>
 
       {priceData && (

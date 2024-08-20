@@ -51,12 +51,14 @@ export async function GET(request: NextRequest) {
       case "getRealEstateTrends":
         const page = parseInt(url.searchParams.get("page") || "1");
         const limit = parseInt(url.searchParams.get("limit") || "20");
-        const district = url.searchParams.get("district");
+        const district = url.searchParams.get("district") || null;
+        const searchTerm = url.searchParams.get("search") || null;
         const trendsResult = await getRealEstateTrends(
           collection,
           page,
           limit,
-          district
+          district,
+          searchTerm
         );
         return NextResponse.json(trendsResult);
 

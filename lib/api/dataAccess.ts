@@ -122,11 +122,21 @@ export async function getRealEstateTrends(
   collection: Collection,
   page: number,
   limit: number,
-  district: string | null
+  district: string | null,
+  searchTerm: string | null
 ) {
-  let query = {};
+  let query: any = {};
+
   if (district && district !== "all") {
-    query = { district: district };
+    query.district = district;
+  }
+
+  if (searchTerm) {
+    query.$or = [
+      { projectName: { $regex: searchTerm, $options: "i" } },
+      { address: { $regex: searchTerm, $options: "i" } },
+      { buildingNumber: { $regex: searchTerm, $options: "i" } },
+    ];
   }
 
   const totalCount = await collection.countDocuments(query);

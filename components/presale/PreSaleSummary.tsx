@@ -8,7 +8,6 @@ interface PreSaleSummaryProps {
 }
 
 export function PreSaleSummary({ houses }: PreSaleSummaryProps) {
-  console.log("houses", { houses });
   const totalHouses = houses.length;
   const averagePrice =
     houses.reduce((sum, house) => sum + house.mainBuildingPricePerPin, 0) /
