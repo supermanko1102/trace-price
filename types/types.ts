@@ -1,4 +1,5 @@
 export interface House {
+  address: string;
   projectName: string;
   buildingNumber: string;
   district: string;

@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo } from "react";
 import {
   AreaChart,
   Area,
@@ -102,7 +102,6 @@ const processRegionData = (dataArray: DataPoint[]) => {
 
 const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
   data,
-  selectedRegion,
   selectedDistrict,
 }) => {
   const chartData = useMemo(() => {
@@ -124,7 +123,7 @@ const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
   }, [data, selectedDistrict]);
 
   if (chartData.length === 0) {
-    return <div>暫無數據可顯示。請確保已選擇一個區域。</div>;
+    return <div>暫無圖表可顯示。請確保已選擇一個區域。</div>;
   }
 
   const formatXAxis = (tickItem: string) => {
@@ -136,7 +135,7 @@ const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
   };
 
   if (!selectedDistrict) {
-    return <div>請選擇一個鄉鎮區</div>;
+    return <div className="text-red-400">*請選擇一個鄉鎮區來查看趨勢圖*</div>;
   }
 
   return (

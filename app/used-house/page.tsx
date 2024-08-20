@@ -5,9 +5,9 @@ import { motion } from "framer-motion";
 
 function ConstructionPage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4 sm:px-6 lg:px-8">
       <motion.div
-        className="text-4xl font-bold mb-8 text-gray-800"
+        className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 md:mb-8 text-gray-800 text-center"
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -40,7 +40,7 @@ function ConstructionPage() {
         </div>
       </div>
       <motion.p
-        className="mt-8 text-lg text-gray-600"
+        className="mt-6 sm:mt-8 text-base sm:text-lg text-gray-600 text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.8 }}

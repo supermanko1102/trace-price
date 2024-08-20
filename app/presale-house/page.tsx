@@ -146,6 +146,7 @@ export default function Home() {
             <TableHead>建案名稱</TableHead>
             <TableHead>主要用途</TableHead>
             <TableHead>棟及號</TableHead>
+            <TableHead>建築物門牌</TableHead>
             <TableHead>主建物每坪價格</TableHead>
             <TableHead>主建物面積</TableHead>
             <TableHead>主建物總價</TableHead>
@@ -162,6 +163,7 @@ export default function Home() {
               <TableCell>{house.projectName}</TableCell>
               <TableCell>{house.mainUse}</TableCell>
               <TableCell>{house.buildingNumber}</TableCell>
+              <TableCell>{house.address}</TableCell>
               <TableCell>
                 {formatPrice(Math.round(house.mainBuildingPricePerPin))}
               </TableCell>
