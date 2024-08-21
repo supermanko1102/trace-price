@@ -45,7 +45,7 @@ function ConstructionPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.8 }}
       >
-        我正在努力建設中，敬請期待！
+        建設中，敬請期待！
       </motion.p>
     </div>
   );
