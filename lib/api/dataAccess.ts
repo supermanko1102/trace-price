@@ -163,17 +163,30 @@ export async function getMonthlyPresaleHouses(
     let query: any = {};
     const currentDate = new Date();
 
-    // 計算兩個月前的日期
+    // 計算上個月的最後一天
+    const lastMonthEnd = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      0
+    );
+
+    // 計算兩個月前的第一天
     const twoMonthsAgo = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth() - 2,
       1
     );
-    const queryYear = twoMonthsAgo.getFullYear() - 1911; // 轉換為民國年
-    const queryMonth = String(twoMonthsAgo.getMonth() + 1).padStart(2, "0");
 
-    const startDate = `${queryYear}${queryMonth}01`;
-    const endDate = `${queryYear}${queryMonth}31`;
+    // 轉換為民國年的日期格式
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear() - 1911;
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}${month}${day}`;
+    };
+
+    const startDate = formatDate(twoMonthsAgo);
+    const endDate = formatDate(lastMonthEnd);
 
     query.transactionDate = {
       $gte: startDate,
