@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
+import { AppError, handleError } from "@/lib/errorHandler";
 
 export async function POST() {
   const client = new MongoClient(process.env.MONGODB_URI as string);
@@ -16,8 +17,7 @@ export async function POST() {
       deletedCount: result.deletedCount,
     });
   } catch (error) {
-    console.error("資料庫操作錯誤:", error);
-    return NextResponse.json({ error: "刪除數據失敗" }, { status: 500 });
+    return handleError(error);
   } finally {
     await client.close();
   }

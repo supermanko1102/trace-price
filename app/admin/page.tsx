@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Upload, Trash2 } from "lucide-react";
 import {
   Select,
@@ -20,15 +19,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
+
 const REGIONS = ["taipei", "newTaipei", "taoyuan"] as const;
 type Region = (typeof REGIONS)[number];
 
 export default function AdminPage() {
   const [file, setFile] = useState<File | null>(null);
-  const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDeletingData, setIsDeletingData] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<Region>("taipei");
+  const [isClient, setIsClient] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -39,11 +45,19 @@ export default function AdminPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!file) {
-      setMessage("請選擇一個檔案");
+      toast({
+        title: "錯誤",
+        description: "請選擇一個檔案",
+        variant: "destructive",
+      });
       return;
     }
     if (!selectedRegion) {
-      setMessage("請選擇一個地區");
+      toast({
+        title: "錯誤",
+        description: "請選擇一個地區",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -52,17 +66,25 @@ export default function AdminPage() {
     formData.append("region", selectedRegion);
 
     setIsLoading(true);
-    setMessage("正在上傳並處理檔案，請稍候...");
+    toast({
+      title: "處理中",
+      description: "正在上傳並處理檔案，請稍候...",
+    });
 
     try {
       const response = await axios.post("/api/admin/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setMessage(
-        `檔案處理成功，共處理 ${response.data.totalProcessed} 筆數據，新增 ${response.data.insertedCount} 筆，更新 ${response.data.updatedCount} 筆`
-      );
+      toast({
+        title: "成功",
+        description: `檔案處理成功，共處理 ${response.data.totalProcessed} 筆數據，新增 ${response.data.insertedCount} 筆，更新 ${response.data.updatedCount} 筆`,
+      });
     } catch (error) {
-      setMessage("檔案上傳或處理失敗");
+      toast({
+        title: "錯誤",
+        description: "檔案上傳或處理失敗",
+        variant: "destructive",
+      });
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -70,19 +92,30 @@ export default function AdminPage() {
   };
 
   const handleClearData = async () => {
-    if (window.confirm("確定要刪除所有現有數據嗎？此操作不可逆。")) {
+    if (confirm("確定要刪除所有現有數據嗎？此操作不可逆。")) {
       setIsDeletingData(true);
       try {
         const response = await axios.post("/api/admin/clearData");
-        setMessage(`數據清除成功，共刪除 ${response.data.deletedCount} 筆數據`);
+        toast({
+          title: "成功",
+          description: `數據清除成功，共刪除 ${response.data.deletedCount} 筆數據`,
+        });
       } catch (error) {
-        setMessage("數據清除失敗");
+        toast({
+          title: "錯誤",
+          description: "數據清除失敗",
+          variant: "destructive",
+        });
         console.error(error);
       } finally {
         setIsDeletingData(false);
       }
     }
   };
+
+  if (!isClient) {
+    return null; // 或者返回一個加載指示器
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -146,11 +179,6 @@ export default function AdminPage() {
               </>
             )}
           </Button>
-          {message && (
-            <Alert className="mt-4">
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
-          )}
         </CardContent>
       </Card>
     </div>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
 import csv from "csv-parser";
-
+import { AppError, handleError } from "@/lib/errorHandler";
 // 平方公尺轉換為坪的函數
 function squareMetersToPin(squareMeters: number): number {
   return squareMeters / 3.305785;
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   };
 
   if (!file || !region) {
-    return NextResponse.json({ error: "缺少檔案或地區信息" }, { status: 400 });
+    throw new AppError("缺少檔案或地區信息", 400);
   }
 
   const requiredColumns = [
@@ -65,12 +65,9 @@ export async function POST(request: NextRequest) {
     (col) => !headers.includes(col)
   );
   if (missingColumns.length > 0) {
-    return NextResponse.json(
-      {
-        error: "檔案格式不正確",
-        missingColumns: missingColumns,
-      },
-      { status: 400 }
+    throw new AppError(
+      `檔案格式不正確: 缺少列 ${missingColumns.join(", ")}`,
+      400
     );
   }
 
@@ -177,8 +174,7 @@ export async function POST(request: NextRequest) {
       totalProcessed: results.length,
     });
   } catch (error) {
-    console.error("資料庫操作錯誤:", error);
-    return NextResponse.json({ error: "資料庫操作失敗" }, { status: 500 });
+    return handleError(error);
   } finally {
     await client.close();
   }

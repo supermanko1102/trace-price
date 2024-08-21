@@ -11,6 +11,7 @@ import {
   getRealEstateTrends,
   getMonthlyPresaleHouses,
 } from "@/lib/api/dataAccess";
+import { AppError, handleError } from "@/lib/errorHandler";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   const region = url.searchParams.get("region") as Region;
 
   if (!region || !REGIONS.includes(region)) {
-    return NextResponse.json({ error: "無效的地區參數" }, { status: 400 });
+    throw new AppError("無效的地區參數", 400);
   }
 
   try {
@@ -35,10 +36,7 @@ export async function GET(request: NextRequest) {
         const startDate = url.searchParams.get("startDate");
         const endDate = url.searchParams.get("endDate");
         if (!startDate || !endDate) {
-          return NextResponse.json(
-            { error: "無效的日期參數" },
-            { status: 400 }
-          );
+          throw new AppError("無效的日期參數", 400);
         }
         const dailyStatsCollection = db.collection(`daily_stats_${region}`);
         const averagePriceResult = await calculateAveragePriceByDistrict(
@@ -73,17 +71,13 @@ export async function GET(request: NextRequest) {
           return NextResponse.json(monthlyHouses);
         } catch (error) {
           console.error("getMonthlyPresaleHouses 錯誤:", error);
-          return NextResponse.json(
-            { error: "處理月度預售屋數據時發生錯誤" },
-            { status: 500 }
-          );
+          throw new AppError("處理月度預售屋數據時發生錯誤", 500);
         }
 
       default:
-        return NextResponse.json({ error: "無效的操作" }, { status: 400 });
+        throw new AppError("無效的操作", 400);
     }
   } catch (error) {
-    console.error("資料庫操作錯誤:", error);
-    return NextResponse.json({ error: "資料庫操作失敗" }, { status: 500 });
+    return handleError(error);
   }
 }
