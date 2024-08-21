@@ -1,4 +1,4 @@
-import { PaginatedResponse, RegionData, Region } from "../../types/types";
+import { PaginatedResponse, RegionData, Region, House } from "@/types/types";
 
 export async function getPresaleHouses(
   page: number,
@@ -42,6 +42,22 @@ export async function getAveragePriceByDistrict(
   );
   if (!res.ok) {
     throw new Error("Failed to fetch average price data");
+  }
+  return res.json();
+}
+
+export async function getMonthlyPresaleHouses(
+  region: Region,
+  district: string
+): Promise<House[]> {
+  const districtParam =
+    district && district !== "all" ? `&district=${district}` : "";
+  const res = await fetch(
+    `/api/realEstateData?action=getMonthlyPresaleHouses&region=${region}${districtParam}`,
+    { cache: "no-store" }
+  );
+  if (!res.ok) {
+    throw new Error("獲取月度數據失敗");
   }
   return res.json();
 }

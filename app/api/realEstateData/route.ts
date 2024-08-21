@@ -9,6 +9,7 @@ import {
   calculateAveragePriceByDistrict,
   getDistricts,
   getRealEstateTrends,
+  getMonthlyPresaleHouses,
 } from "@/lib/api/dataAccess";
 
 export async function GET(request: NextRequest) {
@@ -51,16 +52,32 @@ export async function GET(request: NextRequest) {
       case "getRealEstateTrends":
         const page = parseInt(url.searchParams.get("page") || "1");
         const limit = parseInt(url.searchParams.get("limit") || "20");
-        const district = url.searchParams.get("district") || null;
+        const trendDistrict = url.searchParams.get("district") || null;
         const searchTerm = url.searchParams.get("search") || null;
         const trendsResult = await getRealEstateTrends(
           collection,
           page,
           limit,
-          district,
+          trendDistrict,
           searchTerm
         );
         return NextResponse.json(trendsResult);
+
+      case "getMonthlyPresaleHouses":
+        const monthlyDistrict = url.searchParams.get("district") || null;
+        try {
+          const monthlyHouses = await getMonthlyPresaleHouses(
+            collection,
+            monthlyDistrict
+          );
+          return NextResponse.json(monthlyHouses);
+        } catch (error) {
+          console.error("getMonthlyPresaleHouses 錯誤:", error);
+          return NextResponse.json(
+            { error: "處理月度預售屋數據時發生錯誤" },
+            { status: 500 }
+          );
+        }
 
       default:
         return NextResponse.json({ error: "無效的操作" }, { status: 400 });

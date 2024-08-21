@@ -154,3 +154,44 @@ export async function getRealEstateTrends(
     totalPages: Math.ceil(totalCount / limit),
   };
 }
+
+export async function getMonthlyPresaleHouses(
+  collection: Collection,
+  district: string | null
+) {
+  try {
+    let query: any = {};
+    const currentDate = new Date();
+
+    // 計算兩個月前的日期
+    const twoMonthsAgo = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() - 2,
+      1
+    );
+    const queryYear = twoMonthsAgo.getFullYear() - 1911; // 轉換為民國年
+    const queryMonth = String(twoMonthsAgo.getMonth() + 1).padStart(2, "0");
+
+    const startDate = `${queryYear}${queryMonth}01`;
+    const endDate = `${queryYear}${queryMonth}31`;
+
+    query.transactionDate = {
+      $gte: startDate,
+      $lte: endDate,
+    };
+
+    if (district && district !== "all") {
+      query.district = district;
+    }
+
+    // 執行帶條件的查詢
+    const result = await collection
+      .find(query)
+      .sort({ transactionDate: -1 })
+      .toArray();
+    return result;
+  } catch (error) {
+    console.error("getMonthlyPresaleHouses 詳細錯誤:", error);
+    throw error;
+  }
+}

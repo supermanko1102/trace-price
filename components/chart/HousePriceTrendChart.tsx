@@ -111,7 +111,6 @@ const HousePriceTrendChart: React.FC<HousePriceTrendChartProps> = ({
       return processedData;
     }
 
-    console.log("處理選定區域的數據:", selectedDistrict);
     const filteredData = processedData
       .map((item) => ({
         date: item.date,

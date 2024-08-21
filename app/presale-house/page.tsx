@@ -26,6 +26,7 @@ import {
   getPresaleHouses,
   getDistricts,
   getAveragePriceByDistrict,
+  getMonthlyPresaleHouses,
 } from "@/app/lib/realEstateClient";
 import LoadingSpinner from "@/components/globals/LoadingSpinner";
 import { PreSaleSummary } from "@/components/presale/PreSaleSummary";
@@ -41,29 +42,32 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<Region>("taoyuan");
   const [priceData, setPriceData] = useState<RegionData[] | null>(null);
-  console.log("priceData", priceData);
   const [districts, setDistricts] = useState<string[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [appliedSearchTerm, setAppliedSearchTerm] = useState("");
+  const [monthlyHouses, setMonthlyHouses] = useState<House[]>([]);
   const itemsPerPage = 15;
 
   const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [housesData, regionPriceData] = await Promise.all([
-        getPresaleHouses(
-          currentPage,
-          itemsPerPage,
-          selectedRegion,
-          selectedDistrict,
-          appliedSearchTerm
-        ),
-        getAveragePriceByDistrict(selectedRegion),
-      ]);
+      const [housesData, regionPriceData, monthlyHousesData] =
+        await Promise.all([
+          getPresaleHouses(
+            currentPage,
+            itemsPerPage,
+            selectedRegion,
+            selectedDistrict,
+            appliedSearchTerm
+          ),
+          getAveragePriceByDistrict(selectedRegion),
+          getMonthlyPresaleHouses(selectedRegion, selectedDistrict),
+        ]);
       setHouses(housesData.houses);
       setTotalPages(housesData.totalPages);
       setPriceData(regionPriceData);
+      setMonthlyHouses(monthlyHousesData);
       setIsLoading(false);
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -113,12 +117,14 @@ export default function Home() {
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <div>錯誤: {error}</div>;
-
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-4">預售屋資料</h1>
-      {!isLoading && !error && houses.length > 0 && (
-        <PreSaleSummary houses={houses} selectedRegion={selectedRegion} />
+      {!isLoading && !error && monthlyHouses.length > 0 && (
+        <PreSaleSummary
+          houses={monthlyHouses}
+          selectedRegion={selectedRegion}
+        />
       )}
 
       <div className="mb-4 flex space-x-4">
